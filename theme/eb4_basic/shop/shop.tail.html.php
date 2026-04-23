@@ -4,7 +4,7 @@
  */
 if (!defined('_EYOOM_')) exit;
 ?>
-
+<?php echo eb_slider('1776909913'); ?>
 <?php if (!$wmode) { ?>
 	<?php if(defined('_INDEX_')) { ?>
         </main>
