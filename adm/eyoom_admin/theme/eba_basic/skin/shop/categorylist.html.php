@@ -27,7 +27,7 @@ $g5_page_path = '<li class="breadcrumb-item"><a href="'.correct_goto_url(G5_ADMI
                 <a href="javascript:void(0);" onclick="collapseAll()">전체닫기</a>
                 <a href="javascript:void(0);" onclick="expandAll()">전체열기</a>
             </div>
-            <div class="easyui-panel">
+            <div class="easyui-panel" style="height:calc(100vh - 180px); overflow-y:auto; overflow-x:hidden; border:1px solid #ddd; border-radius:4px;">
                 <ul id="category" class="easyui-tree" data-options="url:'<?php echo EYOOM_ADMIN_CORE_URL; ?>/shop/categorylist.json.php<?php echo $id ? '?id='.$id:'';?>',method:'get',animate:true,lines:true"></ul>
             </div>
         </div>

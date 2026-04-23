@@ -8,7 +8,7 @@
  * GET /partsds/car_api.php?action=models&series_id=1  -> 시리즈별 모델 목록
  * GET /partsds/car_api.php?action=member_car          -> 로그인 회원 저장 차종
  */
-include_once('../_common.php');
+include_once('./_common.php');
 
 header('Content-Type: application/json; charset=utf-8');
 
