@@ -28,6 +28,7 @@ $allowed_files = [
     'install_member_type'     => __DIR__ . '/install_member_type.sql',
     'install_shop_categories' => __DIR__ . '/install_shop_categories.sql',
     'update_ca_id'            => __DIR__ . '/update_ca_id.sql',
+    'fix_ca_order'            => __DIR__ . '/fix_ca_order.sql',  // 3차분류 ca_order 1부터 시작 정규화
 ];
 
 $file_key = isset($_GET['file']) ? preg_replace('/[^a-z0-9_]/', '', $_GET['file']) : '';
@@ -125,6 +126,15 @@ tr:nth-child(even) td { background: #fafafa; }
                 <small style="color:#666;">→ 브랜드 선택기와 상품 목록 필터 연동에 필요</small>
             </td>
             <td><a href="?key=<?=htmlspecialchars($input_key)?>&file=update_ca_id" class="btn btn-gray">실행</a></td>
+        </tr>
+        <tr>
+            <td><span class="step-no">5</span></td>
+            <td><code>fix_ca_order.sql</code></td>
+            <td>
+                3차분류 <code>ca_order</code>를 각 2차분류(시리즈) 내에서 <strong>1부터 시작</strong>하도록 정규화<br>
+                <small style="color:#c0392b;">현재: 전체 연속 번호(1,2,...,2876) → 수정: 각 시리즈 내 1,2,3...</small>
+            </td>
+            <td><a href="?key=<?=htmlspecialchars($input_key)?>&file=fix_ca_order" class="btn btn-green">실행</a></td>
         </tr>
     </table>
 </div>
@@ -379,8 +389,12 @@ tr:nth-child(even) td { background: #fafafa; }
             } elseif ($file_key === 'install_member_type') {
                 echo "\n<span class='warn'>→ 다음 단계: install_shop_categories.sql 실행</span>\n";
             } elseif ($file_key === 'update_ca_id') {
+                echo "\n<span class='ok'>→ update_ca_id 완료!</span>\n";
+                echo "<span class='warn'>→ 다음 단계: fix_ca_order.sql 실행 (3차분류 순서 정규화)</span>\n";
+            } elseif ($file_key === 'fix_ca_order') {
                 echo "\n<span class='ok'>→ 모든 단계 완료!</span>\n";
-                echo "<span class='warn'>→ 확인: 쇼핑몰 A클래스 페이지에서 모델 확인</span>\n";
+                echo "<span class='ok'>→ 3차분류 ca_order가 각 2차분류 내에서 1부터 시작하도록 정규화되었습니다.</span>\n";
+                echo "<span class='warn'>→ 확인: 쇼핑몰 A클래스 페이지에서 모델 목록 확인</span>\n";
             }
         }
 

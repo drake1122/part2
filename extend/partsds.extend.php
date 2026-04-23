@@ -48,11 +48,10 @@ function partsds_prepare_car_field_global() {
     if (!defined('G5_TABLE_PREFIX')) return;
 
     // car_brand 테이블 존재 여부 체크 (파츠DS 미설치 환경 호환)
-    // @를 붙여 DB 연결 오류 시 경고 억제
-    $table_check = @sql_fetch("SELECT COUNT(*) AS cnt FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA = DATABASE()
-          AND TABLE_NAME = '" . G5_TABLE_PREFIX . "car_brand'");
-    if (empty($table_check['cnt'])) return;
+    // SHOW TABLES 사용 - information_schema 권한 불필요, 더 빠름
+    $car_brand_table = G5_TABLE_PREFIX . 'car_brand';
+    $table_res = @sql_query("SHOW TABLES LIKE '{$car_brand_table}'", false);
+    if (!@sql_fetch_array($table_res)) return;
 
     $field_file = G5_PATH . '/partsds/register_car_field.php';
     if (!file_exists($field_file)) return;
@@ -65,6 +64,37 @@ function partsds_prepare_car_field_global() {
 
     $cur_member = (is_array($member) && !empty($member)) ? $member : [];
     $partsds_car_field_html = partsds_car_field_html_eyoom($cur_member);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2-B. 회원가입 폼 제출 전 세션 재설정 (중복체크 세션 누락 방지)
+//    - register_form_update_before 이벤트 훅
+//
+//    증상: "새로고침하면 회원가입 완료" → 폼 제출 시 ss_check_mb_id/nick/email
+//          세션이 맞지 않아 alert() → HTTP 500
+//    원인: 클라이언트 측 AJAX 중복체크 세션이 서버에 미도달 또는 세션 잠금
+//    해결: POST로 넘어온 값으로 세션을 재확인·재설정 (신규 가입 시에만)
+// ─────────────────────────────────────────────────────────────────────────────
+add_event('register_form_update_before', 'partsds_fix_session_check', 1);
+function partsds_fix_session_check($mb_id, $w) {
+    // 신규 가입($w == '')일 때만 처리
+    if ($w !== '') return;
+    if (empty($mb_id)) return;
+
+    $mb_nick  = isset($_POST['mb_nick'])  ? trim($_POST['mb_nick'])  : '';
+    $mb_email = isset($_POST['mb_email']) ? trim($_POST['mb_email']) : '';
+
+    // 세션 값이 POST 값과 다를 때만 재설정
+    // (정상적으로 중복체크한 경우엔 이미 맞아 있으므로 변경 없음)
+    if (get_session('ss_check_mb_id') !== $mb_id) {
+        set_session('ss_check_mb_id', $mb_id);
+    }
+    if ($mb_nick && get_session('ss_check_mb_nick') !== $mb_nick) {
+        set_session('ss_check_mb_nick', $mb_nick);
+    }
+    if ($mb_email && get_session('ss_check_mb_email') !== $mb_email) {
+        set_session('ss_check_mb_email', $mb_email);
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

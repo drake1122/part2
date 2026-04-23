@@ -103,6 +103,7 @@ tr:hover td { background: #f9f9f9; }
     <a href="?key=<?=$key?>&action=categories"  <?=$action==='categories'  ?'class="active"':'';?>>📂 분류 상태</a>
     <a href="?key=<?=$key?>&action=car_mapping" <?=$action==='car_mapping' ?'class="active"':'';?>>🗺 차종 ca_id 매핑</a>
     <a href="?key=<?=$key?>&action=members"     <?=$action==='members'     ?'class="active"':'';?>>👤 회원 유형 현황</a>
+    <a href="?key=<?=$key?>&action=ca_order_check" <?=$action==='ca_order_check' ?'class="active"':'';?>>🔢 ca_order 검증</a>
     <a href="?key=<?=$key?>&action=register_diag" <?=$action==='register_diag' ?'class="active"':'';?>>🔧 회원가입 진단</a>
     <a href="sql_runner.php?key=<?=$key?>"      target="_blank">⚡ SQL Runner</a>
 </div>
@@ -555,6 +556,152 @@ tr:hover td { background: #f9f9f9; }
     </table>
     <?php else: ?>
     <p style="color:#888;">차종 등록 회원이 없습니다.</p>
+    <?php endif; ?>
+</div>
+
+<?php elseif ($action === 'ca_order_check'): ?>
+
+<!-- ════════════════════ ca_order 검증 탭 ════════════════════ -->
+<div class="card">
+    <h2>🔢 3차분류 ca_order 정규화 검증</h2>
+    <p style="color:#666;">각 2차분류(시리즈) 내에서 3차분류의 <code>ca_order</code>가 1부터 시작하는지 확인합니다.</p>
+
+    <?php
+    // g5_shop_category에서 6자리 ca_id 그룹 분석
+    $ca_res = $conn->query("SELECT ca_id, ca_name, ca_order FROM `{$p}shop_category` WHERE LENGTH(ca_id)=6 AND ca_use='1' ORDER BY ca_id");
+    $groups = [];
+    if ($ca_res) {
+        while ($row = $ca_res->fetch_assoc()) {
+            $parent = substr($row['ca_id'], 0, 4);
+            $groups[$parent][] = $row;
+        }
+    }
+
+    $total_groups   = count($groups);
+    $bad_groups     = 0;
+    $fixed_groups   = 0;
+    $bad_list       = [];
+
+    foreach ($groups as $parent => $items) {
+        usort($items, function($a,$b){ return $a['ca_order'] <=> $b['ca_order']; });
+        $min_order = $items[0]['ca_order'];
+        if ($min_order != 1) {
+            $bad_groups++;
+            $bad_list[] = ['parent'=>$parent, 'items'=>$items, 'min'=>$min_order];
+        } else {
+            // 확인: 순서가 연속인지
+            $ok = true;
+            foreach ($items as $i => $item) {
+                if ($item['ca_order'] != ($i+1)) { $ok=false; break; }
+            }
+            if (!$ok) { $bad_groups++; $bad_list[] = ['parent'=>$parent,'items'=>$items,'min'=>$min_order,'gap'=>true]; }
+            else $fixed_groups++;
+        }
+    }
+    ?>
+
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;">
+        <div class="stat-box">
+            <div class="stat-num"><?=$total_groups?></div>
+            <div class="stat-label">전체 2차분류 그룹</div>
+        </div>
+        <div class="stat-box" style="background:<?=$bad_groups>0?'#fdf5f5':'#f0fff0';?>">
+            <div class="stat-num" style="color:<?=$bad_groups>0?'#c0392b':'#27ae60';?>"><?=$bad_groups?></div>
+            <div class="stat-label">ca_order 오류 그룹</div>
+        </div>
+        <div class="stat-box" style="background:#f0fff0;">
+            <div class="stat-num" style="color:#27ae60;"><?=$fixed_groups?></div>
+            <div class="stat-label">정상 그룹</div>
+        </div>
+    </div>
+
+    <?php if ($bad_groups === 0): ?>
+    <p style="color:#27ae60;font-weight:bold;">✅ 모든 3차분류의 ca_order가 각 2차분류 내에서 1부터 시작합니다.</p>
+    <?php else: ?>
+    <p style="color:#c0392b;font-weight:bold;">⚠️ <?=$bad_groups?>개 그룹에서 ca_order가 1부터 시작하지 않습니다.</p>
+    <p><a href="sql_runner.php?key=<?=$key?>&file=fix_ca_order" style="color:#c0392b;font-weight:bold;" target="_blank">
+        ⚡ fix_ca_order.sql 실행하여 수정하기 →
+    </a></p>
+
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+            <tr style="background:#f5f5f5;">
+                <th style="padding:6px 10px;text-align:left;">2차분류 ca_id</th>
+                <th style="padding:6px 10px;text-align:center;">항목 수</th>
+                <th style="padding:6px 10px;text-align:center;">최솟값</th>
+                <th style="padding:6px 10px;text-align:center;">상태</th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php foreach (array_slice($bad_list, 0, 20) as $g): ?>
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:6px 10px;"><?=htmlspecialchars($g['parent'])?></td>
+                <td style="padding:6px 10px;text-align:center;"><?=count($g['items'])?></td>
+                <td style="padding:6px 10px;text-align:center;color:#c0392b;"><?=$g['min']?></td>
+                <td style="padding:6px 10px;text-align:center;">
+                    <?php if (!empty($g['gap'])): ?>
+                        <span style="background:#fff3cd;padding:2px 6px;border-radius:3px;font-size:12px;">순서 불연속</span>
+                    <?php else: ?>
+                        <span style="background:#fdf5f5;color:#c0392b;padding:2px 6px;border-radius:3px;font-size:12px;">1부터 시작 ✗</span>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+        <?php if (count($bad_list) > 20): ?>
+            <tr><td colspan="4" style="padding:6px 10px;color:#888;">... 외 <?=count($bad_list)-20?>개</td></tr>
+        <?php endif; ?>
+        </tbody>
+    </table>
+    <?php endif; ?>
+</div>
+
+<!-- A~C클래스 ca_order 현황 -->
+<div class="card">
+    <h2>📊 A/B/C 클래스 ca_order 현황</h2>
+    <?php
+    // 2차분류 1001~1010 (벤츠 A~CL 클래스)
+    $cls_res = $conn->query("SELECT ca_id, ca_name, ca_order FROM `{$p}shop_category` WHERE ca_id BETWEEN '1001' AND '1010' ORDER BY ca_id");
+    if ($cls_res && $cls_res->num_rows > 0):
+    ?>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+            <tr style="background:#f5f5f5;">
+                <th style="padding:6px 10px;text-align:left;">ca_id (2차)</th>
+                <th style="padding:6px 10px;text-align:left;">클래스명</th>
+                <th style="padding:6px 10px;text-align:center;">ca_order</th>
+                <th style="padding:6px 10px;text-align:center;">3차분류 수</th>
+                <th style="padding:6px 10px;text-align:center;">3차 ca_order 시작값</th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php while ($cls = $cls_res->fetch_assoc()): ?>
+            <?php
+            $sub_cnt_row = q1($conn, "SELECT COUNT(*) AS cnt FROM `{$p}shop_category` WHERE ca_id LIKE '{$cls['ca_id']}%' AND LENGTH(ca_id)=6");
+            $sub_min_row = q1($conn, "SELECT MIN(ca_order) AS m FROM `{$p}shop_category` WHERE ca_id LIKE '{$cls['ca_id']}%' AND LENGTH(ca_id)=6");
+            $sub_cnt = (int)($sub_cnt_row['cnt'] ?? 0);
+            $sub_min = (int)($sub_min_row['m'] ?? 0);
+            $ok_cls = ($sub_cnt == 0 || $sub_min == 1);
+            ?>
+            <tr style="border-bottom:1px solid #eee;background:<?=$ok_cls?'inherit':'#fdf5f5';?>;">
+                <td style="padding:6px 10px;font-weight:bold;"><?=htmlspecialchars($cls['ca_id'])?></td>
+                <td style="padding:6px 10px;"><?=htmlspecialchars($cls['ca_name'])?></td>
+                <td style="padding:6px 10px;text-align:center;"><?=$cls['ca_order']?></td>
+                <td style="padding:6px 10px;text-align:center;"><?=$sub_cnt?></td>
+                <td style="padding:6px 10px;text-align:center;">
+                    <?php if ($sub_cnt == 0): ?>
+                        <span style="color:#aaa;">-</span>
+                    <?php elseif ($ok_cls): ?>
+                        <span style="color:#27ae60;">✅ <?=$sub_min?></span>
+                    <?php else: ?>
+                        <span style="color:#c0392b;">❌ <?=$sub_min?> (수정 필요)</span>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        <?php endwhile; ?>
+        </tbody>
+    </table>
+    <?php else: ?>
+    <p style="color:#888;">A~C클래스 데이터가 없습니다. install_shop_categories.sql을 먼저 실행하세요.</p>
     <?php endif; ?>
 </div>
 

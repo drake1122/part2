@@ -72,6 +72,22 @@ $item_view = 'zoom';
                                 <?php if ($is_admin) {  ?>
                             <li><a href="<?php echo correct_goto_url(G5_ADMIN_URL); ?>"><i class="fas fa-cog text-crimson"></i>관리자</a></li>
                                 <?php }  ?>
+                                <?php
+                                // ── 파츠디에스: 내 차종 표시 ──
+                                $pds_brand_name  = isset($member['mb_1']) ? trim($member['mb_1']) : '';
+                                $pds_series_name = isset($member['mb_2']) ? trim($member['mb_2']) : '';
+                                $pds_model_name  = isset($member['mb_3']) ? trim($member['mb_3']) : '';
+                                if ($pds_brand_name) {
+                                    $pds_car_text = $pds_brand_name;
+                                    if ($pds_series_name) $pds_car_text .= ' ' . $pds_series_name;
+                                    if ($pds_model_name)  $pds_car_text .= ' ' . $pds_model_name;
+                                ?>
+                            <li class="pds-my-car-nav" title="내 차종: <?php echo htmlspecialchars($pds_car_text); ?>">
+                                <a href="<?php echo G5_BBS_URL; ?>/member_confirm.php?url=register_form.php" style="max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:inline-block;vertical-align:middle;">
+                                    <i class="fas fa-car" style="color:#c0392b;margin-right:4px;"></i><?php echo htmlspecialchars($pds_car_text); ?>
+                                </a>
+                            </li>
+                                <?php } ?>
                             <li><a href="<?php echo G5_BBS_URL ?>/logout.php"><i class="fas fa-sign-out-alt"></i>로그아웃</a></li>
                             <?php } else {  ?>
                             <li><a href="<?php echo G5_BBS_URL ?>/login.php"><i class="fas fa-unlock-alt"></i>로그인</a></li>
