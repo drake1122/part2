@@ -14,7 +14,7 @@ if (empty($_pds_check['cnt'])) return;
 
 // 브랜드 목록 로드
 $brands = [];
-$res = sql_query("SELECT brand_id, brand_name, brand_name_en, brand_logo 
+$res = sql_query("SELECT brand_id, brand_name, brand_name_en, brand_logo, ca_id 
                   FROM `" . G5_TABLE_PREFIX . "car_brand` 
                   WHERE brand_use = 1 
                   ORDER BY brand_order, brand_id 
@@ -110,6 +110,7 @@ $brand_logo_map = [
                         <?php foreach ($brands as $brand): ?>
                         <option value="<?php echo (int)$brand['brand_id']; ?>"
                                 data-name="<?php echo htmlspecialchars($brand['brand_name']); ?>"
+                                data-ca-id="<?php echo htmlspecialchars($brand['ca_id'] ?? ''); ?>"
                                 <?php if ($member_car['brand_id'] == $brand['brand_id']) echo 'selected'; ?>>
                             <?php echo htmlspecialchars($brand['brand_name']); ?>
                         </option>
@@ -232,6 +233,11 @@ $brand_logo_map = [
         });
     }
 
+    // 시리즈 ca_id 캐시 (series_id -> ca_id)
+    var seriesCaMap = {};
+    // 모델 ca_id 캐시 (model_id -> ca_id)
+    var modelCaMap = {};
+
     function loadSeries(brandId) {
         var selSeries = document.getElementById('pdsSelectSeries');
         var selModel  = document.getElementById('pdsSelectModel');
@@ -239,6 +245,8 @@ $brand_logo_map = [
         selSeries.disabled  = true;
         selModel.innerHTML  = '<option value="">③ 모델 선택</option>';
         selModel.disabled   = true;
+        seriesCaMap = {};
+        modelCaMap  = {};
         if (!brandId) return;
 
         fetch(PDS_API + '?action=series&brand_id=' + brandId)
@@ -249,7 +257,9 @@ $brand_logo_map = [
                         var opt = document.createElement('option');
                         opt.value = s.id;
                         opt.textContent = s.name;
+                        opt.setAttribute('data-ca-id', s.ca_id || '');
                         selSeries.appendChild(opt);
+                        if (s.ca_id) seriesCaMap[s.id] = s.ca_id;
                     });
                     selSeries.disabled = false;
 
@@ -268,6 +278,7 @@ $brand_logo_map = [
         var selModel = document.getElementById('pdsSelectModel');
         selModel.innerHTML = '<option value="">③ 모델 선택</option>';
         selModel.disabled  = true;
+        modelCaMap = {};
         if (!seriesId) return;
 
         fetch(PDS_API + '?action=models&series_id=' + seriesId)
@@ -278,7 +289,9 @@ $brand_logo_map = [
                         var opt = document.createElement('option');
                         opt.value = m.id;
                         opt.textContent = m.name;
+                        opt.setAttribute('data-ca-id', m.ca_id || '');
                         selModel.appendChild(opt);
+                        if (m.ca_id) modelCaMap[m.id] = m.ca_id;
                     });
                     selModel.disabled = false;
 
@@ -318,11 +331,29 @@ $brand_logo_map = [
             pdsSaveMyCar(brandId, seriesId, modelId);
         }
 
-        // 검색 URL 생성 - 그누보드 쇼핑몰 리스트로 이동 (ca_id 기반)
-        // 브랜드 > 그누보드 상품 카테고리로 매핑 (쿼리스트링으로 차종 전달)
-        var url = '<?php echo G5_SHOP_URL; ?>/list.php?pds_brand=' + brandId;
-        if (seriesId) url += '&pds_series=' + seriesId;
-        if (modelId)  url += '&pds_model='  + modelId;
+        // ca_id 기반으로 그누보드 쇼핑몰 카테고리 URL 생성
+        // 모델 > 시리즈 > 브랜드 순서로 가장 세부 ca_id 사용
+        var targetCaId = '';
+        if (modelId && modelCaMap[modelId]) {
+            targetCaId = modelCaMap[modelId];       // 모델 ca_id (6~7자리)
+        } else if (seriesId && seriesCaMap[seriesId]) {
+            targetCaId = seriesCaMap[seriesId];     // 시리즈 ca_id (4~5자리)
+        } else {
+            // 브랜드의 ca_id는 select option data 속성에서 가져옴
+            var brandOpt = document.querySelector('#pdsSelectBrand option[value="' + brandId + '"]');
+            targetCaId = brandOpt ? (brandOpt.getAttribute('data-ca-id') || '') : '';
+        }
+
+        var url;
+        if (targetCaId) {
+            // 그누보드 쇼핑몰 분류 URL: /shop/list.php?ca_id=XXXX
+            url = '<?php echo G5_SHOP_URL; ?>/list.php?ca_id=' + targetCaId;
+        } else {
+            // ca_id 매핑 없을 때 차종 파라미터로 fallback
+            url = '<?php echo G5_SHOP_URL; ?>/list.php?pds_brand=' + brandId;
+            if (seriesId) url += '&pds_series=' + seriesId;
+            if (modelId)  url += '&pds_model='  + modelId;
+        }
 
         window.location.href = url;
     };
