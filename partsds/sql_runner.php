@@ -327,7 +327,8 @@ tr:nth-child(even) td { background: #fafafa; }
         } else {
             // ── 일반 실행 ──
             foreach ($statements as $i => $stmt) {
-                $is_meta = (stripos($stmt, 'SET NAMES') === 0 || stripos($stmt, 'SET FOREIGN_KEY_CHECKS') === 0);
+                $is_meta    = (stripos($stmt, 'SET NAMES') === 0 || stripos($stmt, 'SET FOREIGN_KEY_CHECKS') === 0);
+                $is_alter   = stripos($stmt, 'ALTER TABLE') === 0;
 
                 if ($conn->query($stmt)) {
                     $ok_count++;
@@ -336,9 +337,35 @@ tr:nth-child(even) td { background: #fafafa; }
                         echo "   → affected: " . $conn->affected_rows . "\n";
                     }
                 } else {
-                    $err_count++;
-                    echo "<span class='err'>✗ [" . ($i+1) . "] 오류: " . htmlspecialchars($conn->error) . "</span>\n";
-                    echo "   SQL: " . htmlspecialchars(substr($stmt, 0, 120)) . "\n";
+                    $err_no  = $conn->errno;
+                    $err_msg = $conn->error;
+
+                    // ALTER TABLE 오류 처리:
+                    // 1060 = Duplicate column name (이미 컬럼 존재 → 정상)
+                    // 1064 = IF NOT EXISTS 미지원 MySQL → 개별 시도
+                    if ($is_alter && ($err_no == 1060 || $err_no == 1054)) {
+                        $ok_count++;
+                        echo "<span class='warn'>⚠ [" . ($i+1) . "] 컬럼 이미 존재 (무시): " . htmlspecialchars(substr($stmt, 0, 70)) . "\n";
+                    } elseif ($is_alter && $err_no == 1064 && stripos($stmt, 'IF NOT EXISTS') !== false) {
+                        // IF NOT EXISTS 미지원 → IF NOT EXISTS 제거 후 재시도
+                        $stmt2 = preg_replace('/\bIF\s+NOT\s+EXISTS\s+/i', '', $stmt);
+                        if ($conn->query($stmt2)) {
+                            $ok_count++;
+                            echo "<span class='ok'>✓ (IF NOT EXISTS 제거 후 성공)</span> [" . ($i+1) . "] " . htmlspecialchars(substr($stmt2, 0, 70)) . "\n";
+                        } else {
+                            if ($conn->errno == 1060) {
+                                $ok_count++;
+                                echo "<span class='warn'>⚠ [" . ($i+1) . "] 컬럼 이미 존재 (무시)\n";
+                            } else {
+                                $err_count++;
+                                echo "<span class='err'>✗ [" . ($i+1) . "] ALTER 오류: " . htmlspecialchars($conn->error) . "</span>\n";
+                            }
+                        }
+                    } else {
+                        $err_count++;
+                        echo "<span class='err'>✗ [" . ($i+1) . "] 오류(#" . $err_no . "): " . htmlspecialchars($err_msg) . "</span>\n";
+                        echo "   SQL: " . htmlspecialchars(substr($stmt, 0, 120)) . "\n";
+                    }
                 }
                 flush();
             }

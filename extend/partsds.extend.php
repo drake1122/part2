@@ -17,6 +17,12 @@
  *   mb_8 = 사업자등록번호
  *   mb_9 = 업체명
  *   mb_10 = 담당자명
+ *
+ * 수정 이력:
+ *   v2.1 - g5['g5_member_table'] → g5['member_table'] 오타 수정 (500 오류 원인)
+ *        - register_form_before 이벤트에서 오류 발생 시 조용히 실패하도록 개선
+ *        - partsds_save_member_extra: mb_1~mb_10 필드가 이미 register_form_update.php에서
+ *          저장되므로 차종 ID만 별도 업데이트 (중복 방지)
  */
 if (!defined('_GNUBOARD_')) exit;
 
@@ -32,15 +38,17 @@ function partsds_add_assets() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 2. 회원가입/수정 폼: 차종 + 회원유형 필드 HTML 준비
-//    - register_form_before 이벤트 훅
+//    - register_form_before 이벤트 훅 (register_form.php 에서만 발생)
 // ─────────────────────────────────────────────────────────────────────────────
 add_event('register_form_before', 'partsds_prepare_car_field_global', 1);
 function partsds_prepare_car_field_global() {
     global $partsds_car_field_html, $member;
 
+    // G5_TABLE_PREFIX 미정의 환경 방어
     if (!defined('G5_TABLE_PREFIX')) return;
 
     // car_brand 테이블 존재 여부 체크 (파츠DS 미설치 환경 호환)
+    // @를 붙여 DB 연결 오류 시 경고 억제
     $table_check = @sql_fetch("SELECT COUNT(*) AS cnt FROM information_schema.TABLES
         WHERE TABLE_SCHEMA = DATABASE()
           AND TABLE_NAME = '" . G5_TABLE_PREFIX . "car_brand'");
@@ -49,7 +57,12 @@ function partsds_prepare_car_field_global() {
     $field_file = G5_PATH . '/partsds/register_car_field.php';
     if (!file_exists($field_file)) return;
 
-    include_once($field_file);
+    // 함수 중복 선언 방지
+    if (!function_exists('partsds_car_field_html_eyoom')) {
+        include_once($field_file);
+    }
+    if (!function_exists('partsds_car_field_html_eyoom')) return;
+
     $cur_member = (is_array($member) && !empty($member)) ? $member : [];
     $partsds_car_field_html = partsds_car_field_html_eyoom($cur_member);
 }
@@ -57,24 +70,32 @@ function partsds_prepare_car_field_global() {
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. 회원정보 저장 (회원가입 + 정보수정 공통)
 //    - register_form_update_after 이벤트 훅
+//
+//    중요: register_form_update.php 에서 mb_1~mb_10 을 이미 POST 값으로 저장함.
+//    여기서는 pds_brand_id / pds_series_id / pds_model_id (숨김 필드) 값을
+//    mb_4 / mb_5 / mb_6 으로 한 번 더 저장해 ID가 정확히 들어가도록 보장함.
+//    (mb_1~3, mb_7~10 은 이미 register_form_update.php 에서 처리되었으므로 생략)
 // ─────────────────────────────────────────────────────────────────────────────
 add_event('register_form_update_after', 'partsds_save_member_extra', 10);
 function partsds_save_member_extra($mb_id, $w = '') {
     global $g5;
 
-    // ── 차종 정보 ──
-    $brand_id    = isset($_POST['pds_brand_id'])    ? (int)$_POST['pds_brand_id']                        : 0;
-    $series_id   = isset($_POST['pds_series_id'])   ? (int)$_POST['pds_series_id']                       : 0;
-    $model_id    = isset($_POST['pds_model_id'])    ? (int)$_POST['pds_model_id']                        : 0;
-    $brand_name  = isset($_POST['pds_brand_name'])  ? strip_tags(trim($_POST['pds_brand_name']))          : '';
-    $series_name = isset($_POST['pds_series_name']) ? strip_tags(trim($_POST['pds_series_name']))         : '';
-    $model_name  = isset($_POST['pds_model_name'])  ? strip_tags(trim($_POST['pds_model_name']))          : '';
+    // mb_id 안전성 확인
+    if (empty($mb_id)) return;
+
+    // ── 차종 ID 정보 (POST 숨김 필드 pds_brand_id / pds_series_id / pds_model_id) ──
+    $brand_id    = isset($_POST['pds_brand_id'])    ? (int)$_POST['pds_brand_id']    : 0;
+    $series_id   = isset($_POST['pds_series_id'])   ? (int)$_POST['pds_series_id']   : 0;
+    $model_id    = isset($_POST['pds_model_id'])    ? (int)$_POST['pds_model_id']    : 0;
+    $brand_name  = isset($_POST['pds_brand_name'])  ? strip_tags(trim($_POST['pds_brand_name']))  : '';
+    $series_name = isset($_POST['pds_series_name']) ? strip_tags(trim($_POST['pds_series_name'])) : '';
+    $model_name  = isset($_POST['pds_model_name'])  ? strip_tags(trim($_POST['pds_model_name']))  : '';
 
     // ── 회원 유형 / 사업자 정보 ──
-    $mb_type  = isset($_POST['mb_7'])  ? preg_replace('/[^a-z]/', '', strtolower($_POST['mb_7']))  : 'normal';
-    $biz_no   = isset($_POST['mb_8'])  ? preg_replace('/[^0-9\-]/', '', $_POST['mb_8'])            : '';
-    $biz_name = isset($_POST['mb_9'])  ? strip_tags(trim($_POST['mb_9']))                           : '';
-    $biz_ceo  = isset($_POST['mb_10']) ? strip_tags(trim($_POST['mb_10']))                          : '';
+    $mb_type  = isset($_POST['mb_7'])  ? preg_replace('/[^a-z]/', '', strtolower(trim($_POST['mb_7'])))  : 'normal';
+    $biz_no   = isset($_POST['mb_8'])  ? preg_replace('/[^0-9\-]/', '', $_POST['mb_8'])                  : '';
+    $biz_name = isset($_POST['mb_9'])  ? strip_tags(trim($_POST['mb_9']))                                 : '';
+    $biz_ceo  = isset($_POST['mb_10']) ? strip_tags(trim($_POST['mb_10']))                                : '';
 
     // 유형이 일반이면 사업자 정보 비움
     if ($mb_type !== 'business') {
@@ -84,9 +105,13 @@ function partsds_save_member_extra($mb_id, $w = '') {
         $biz_ceo  = '';
     }
 
-    // ── UPDATE ──
+    // ── 테이블명 확인 ──
+    // 그누보드5 표준: $g5['member_table'] (g5_member_table 키는 존재하지 않음)
+    if (empty($g5['member_table'])) return;
+
+    // ── UPDATE: 차종 ID(mb_4~6) + 차종명(mb_1~3) + 회원유형(mb_7~10) 저장 ──
     $mb_id_safe = sql_escape_string($mb_id);
-    sql_query("UPDATE `{$g5['g5_member_table']}` SET
+    $result = sql_query("UPDATE `{$g5['member_table']}` SET
         mb_1  = '" . sql_escape_string($brand_name)  . "',
         mb_2  = '" . sql_escape_string($series_name) . "',
         mb_3  = '" . sql_escape_string($model_name)  . "',
@@ -97,7 +122,8 @@ function partsds_save_member_extra($mb_id, $w = '') {
         mb_8  = '" . sql_escape_string($biz_no)   . "',
         mb_9  = '" . sql_escape_string($biz_name) . "',
         mb_10 = '" . sql_escape_string($biz_ceo)  . "'
-        WHERE mb_id = '{$mb_id_safe}'");
+        WHERE mb_id = '{$mb_id_safe}'", false);
+    // false = 쿼리 실패 시 die() 하지 않음 (회원가입 프로세스 중단 방지)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -118,8 +144,8 @@ function partsds_auto_car_filter() {
     if (!$is_shop_list) return;
 
     // 비로그인 or 차종 미등록이면 스킵
-    if (!$is_member)              return;
-    if (empty($member['mb_4']))   return;
+    if (!$is_member)            return;
+    if (empty($member['mb_4'])) return;
 
     // 이미 필터 파라미터가 있거나, 필터 해제(pds_no_filter=1)면 스킵
     if (isset($_GET['pds_brand']))     return;

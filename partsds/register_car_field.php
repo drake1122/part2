@@ -222,10 +222,17 @@ function partsds_car_field_html_eyoom($member = []) {
                 </select>
             </div>
 
-            <!-- 숨김 필드 -->
+            <!-- 숨김 필드: 차종명 (pds_* 네임스페이스) -->
             <input type="hidden" id="eyRegBrandName"  name="pds_brand_name"  value="<?php echo $saved_brand_name; ?>">
             <input type="hidden" id="eyRegSeriesName" name="pds_series_name" value="<?php echo $saved_series_name; ?>">
             <input type="hidden" id="eyRegModelName"  name="pds_model_name"  value="<?php echo $saved_model_name; ?>">
+            <!-- 숨김 필드: 그누보드 mb_1~6 직접 매핑 (register_form_update.php 가 읽는 필드) -->
+            <input type="hidden" id="eyRegMb1"  name="mb_1"  value="<?php echo $saved_brand_name; ?>">
+            <input type="hidden" id="eyRegMb2"  name="mb_2"  value="<?php echo $saved_series_name; ?>">
+            <input type="hidden" id="eyRegMb3"  name="mb_3"  value="<?php echo $saved_model_name; ?>">
+            <input type="hidden" id="eyRegMb4"  name="mb_4"  value="<?php echo $saved_brand_id; ?>">
+            <input type="hidden" id="eyRegMb5"  name="mb_5"  value="<?php echo $saved_series_id; ?>">
+            <input type="hidden" id="eyRegMb6"  name="mb_6"  value="<?php echo $saved_model_id; ?>">
 
             <!-- 선택 뱃지 -->
             <div id="eyCarBadge" class="pds-car-badge <?php echo $saved_brand_name ? 'pds-show' : ''; ?>">
@@ -261,6 +268,22 @@ function partsds_car_field_html_eyoom($member = []) {
     var inBrand   = document.getElementById('eyRegBrandName');
     var inSeries  = document.getElementById('eyRegSeriesName');
     var inModel   = document.getElementById('eyRegModelName');
+    // 그누보드 mb_1~6 동기화 숨김 필드
+    var inMb1 = document.getElementById('eyRegMb1');
+    var inMb2 = document.getElementById('eyRegMb2');
+    var inMb3 = document.getElementById('eyRegMb3');
+    var inMb4 = document.getElementById('eyRegMb4');
+    var inMb5 = document.getElementById('eyRegMb5');
+    var inMb6 = document.getElementById('eyRegMb6');
+
+    function syncMbFields() {
+        if (inMb1) inMb1.value = inBrand.value;
+        if (inMb2) inMb2.value = inSeries.value;
+        if (inMb3) inMb3.value = inModel.value;
+        if (inMb4) inMb4.value = selBrand.value  || '';
+        if (inMb5) inMb5.value = selSeries.value || '';
+        if (inMb6) inMb6.value = selModel.value  || '';
+    }
 
     // ── 브랜드 변경 ──
     selBrand.addEventListener('change', function() {
@@ -271,6 +294,7 @@ function partsds_car_field_html_eyoom($member = []) {
 
         pdsResetSelect(selSeries, '② 시리즈/연식 선택', true);
         pdsResetSelect(selModel,  '③ 모델 선택', true);
+        syncMbFields();
         updateBadge();
 
         if (!bid) return;
@@ -289,6 +313,7 @@ function partsds_car_field_html_eyoom($member = []) {
         inModel.value  = '';
 
         pdsResetSelect(selModel, '③ 모델 선택', true);
+        syncMbFields();
         updateBadge();
 
         if (!sid) return;
@@ -303,6 +328,7 @@ function partsds_car_field_html_eyoom($member = []) {
     // ── 모델 변경 ──
     selModel.addEventListener('change', function() {
         inModel.value = this.value ? this.options[this.selectedIndex].text : '';
+        syncMbFields();
         updateBadge();
     });
 

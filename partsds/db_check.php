@@ -103,6 +103,7 @@ tr:hover td { background: #f9f9f9; }
     <a href="?key=<?=$key?>&action=categories"  <?=$action==='categories'  ?'class="active"':'';?>>📂 분류 상태</a>
     <a href="?key=<?=$key?>&action=car_mapping" <?=$action==='car_mapping' ?'class="active"':'';?>>🗺 차종 ca_id 매핑</a>
     <a href="?key=<?=$key?>&action=members"     <?=$action==='members'     ?'class="active"':'';?>>👤 회원 유형 현황</a>
+    <a href="?key=<?=$key?>&action=register_diag" <?=$action==='register_diag' ?'class="active"':'';?>>🔧 회원가입 진단</a>
     <a href="sql_runner.php?key=<?=$key?>"      target="_blank">⚡ SQL Runner</a>
 </div>
 
@@ -555,6 +556,202 @@ tr:hover td { background: #f9f9f9; }
     <?php else: ?>
     <p style="color:#888;">차종 등록 회원이 없습니다.</p>
     <?php endif; ?>
+</div>
+
+<?php elseif ($action === 'register_diag'): ?>
+
+<!-- ════════════════════ 회원가입 진단 탭 ════════════════════ -->
+<div class="card">
+    <h2>🔧 회원가입 관련 진단</h2>
+
+    <?php
+    // 1) car_brand 테이블 존재 여부
+    $car_brand_exists = q1($conn, "SELECT COUNT(*) AS cnt FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='{$p}car_brand'");
+    $car_series_exists = q1($conn, "SELECT COUNT(*) AS cnt FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='{$p}car_series'");
+    $car_model_exists  = q1($conn, "SELECT COUNT(*) AS cnt FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='{$p}car_model'");
+
+    // 2) 각 테이블 레코드 수
+    $brand_cnt  = ($car_brand_exists['cnt']  ?? 0) ? q1($conn, "SELECT COUNT(*) AS cnt FROM `{$p}car_brand`  WHERE brand_use=1")  : ['cnt'=>0];
+    $series_cnt = ($car_series_exists['cnt'] ?? 0) ? q1($conn, "SELECT COUNT(*) AS cnt FROM `{$p}car_series` WHERE series_use=1") : ['cnt'=>0];
+    $model_cnt  = ($car_model_exists['cnt']  ?? 0) ? q1($conn, "SELECT COUNT(*) AS cnt FROM `{$p}car_model`  WHERE model_use=1")  : ['cnt'=>0];
+
+    // 3) g5_shop_category 분류 수
+    $shop_2 = q1($conn, "SELECT COUNT(*) AS cnt FROM `{$p}shop_category` WHERE LENGTH(ca_id)=4");
+    $shop_3 = q1($conn, "SELECT COUNT(*) AS cnt FROM `{$p}shop_category` WHERE LENGTH(ca_id)>=6");
+
+    // 4) mb_7 컬럼 존재 여부
+    $mb7_exists = q1($conn, "SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='{$p}member' AND COLUMN_NAME='mb_7'");
+    ?>
+
+    <h3 style="font-size:15px; margin-bottom:10px;">① 차종 선택 테이블 상태</h3>
+    <table>
+        <tr><th>테이블</th><th>존재</th><th>레코드 수 (use=1)</th><th>비고</th></tr>
+        <tr>
+            <td><code><?=$p?>car_brand</code></td>
+            <td><?=($car_brand_exists['cnt']??0) ? "<span class='ok'>✅ 있음</span>" : "<span class='err'>❌ 없음</span>"?></td>
+            <td><?=number_format($brand_cnt['cnt'])?></td>
+            <td>브랜드 선택 셀렉트용</td>
+        </tr>
+        <tr>
+            <td><code><?=$p?>car_series</code></td>
+            <td><?=($car_series_exists['cnt']??0) ? "<span class='ok'>✅ 있음</span>" : "<span class='err'>❌ 없음</span>"?></td>
+            <td><?=number_format($series_cnt['cnt'])?></td>
+            <td>시리즈/연식 선택 셀렉트용</td>
+        </tr>
+        <tr>
+            <td><code><?=$p?>car_model</code></td>
+            <td><?=($car_model_exists['cnt']??0) ? "<span class='ok'>✅ 있음</span>" : "<span class='err'>❌ 없음</span>"?></td>
+            <td><?=number_format($model_cnt['cnt'])?></td>
+            <td>모델 선택 셀렉트용</td>
+        </tr>
+        <tr>
+            <td><code><?=$p?>shop_category</code> 2차 분류 (4자리)</td>
+            <td>-</td>
+            <td><?=number_format($shop_2['cnt'])?></td>
+            <td>시리즈 분류 (예: 1001, 1002...)</td>
+        </tr>
+        <tr>
+            <td><code><?=$p?>shop_category</code> 3차 분류 (6자리+)</td>
+            <td>-</td>
+            <td>
+                <?php $mc = (int)($shop_3['cnt']??0); ?>
+                <?=$mc > 0 ? "<span class='ok'>✅ ".number_format($mc)."개</span>" : "<span class='err'>❌ 없음 → install_shop_categories.sql 실행 필요</span>"?>
+            </td>
+            <td>모델 분류 (예: 100101, 100102...)</td>
+        </tr>
+    </table>
+
+    <hr class="section-divider">
+
+    <h3 style="font-size:15px; margin-bottom:10px;">② 회원 유형 구분 필드 상태</h3>
+    <table>
+        <tr><th>컬럼</th><th>존재</th><th>비고</th></tr>
+        <tr>
+            <td><code>mb_7</code> (회원유형)</td>
+            <td><?=($mb7_exists['cnt']??0) ? "<span class='ok'>✅ 있음</span>" : "<span class='err'>❌ 없음</span>"?></td>
+            <td>'normal' | 'business' 값 저장</td>
+        </tr>
+    </table>
+    <?php if ($mb7_exists['cnt']??0): ?>
+    <?php
+    $mb7_empty = q1($conn, "SELECT COUNT(*) AS cnt FROM `{$p}member` WHERE mb_7='' OR mb_7 IS NULL");
+    $mb7_normal = q1($conn, "SELECT COUNT(*) AS cnt FROM `{$p}member` WHERE mb_7='normal'");
+    $mb7_biz    = q1($conn, "SELECT COUNT(*) AS cnt FROM `{$p}member` WHERE mb_7='business'");
+    ?>
+    <table style="margin-top:8px;">
+        <tr><th>mb_7 값</th><th>회원 수</th></tr>
+        <tr><td>일반 (normal)</td><td><?=number_format($mb7_normal['cnt'])?></td></tr>
+        <tr><td>사업자 (business)</td><td><?=number_format($mb7_biz['cnt'])?></td></tr>
+        <tr>
+            <td>미설정 (비어있음)</td>
+            <td>
+                <?php $ec = (int)($mb7_empty['cnt']??0); ?>
+                <?=$ec > 0 ? "<span class='warn'>⚠️ {$ec}명 미설정 → install_member_type.sql 실행 권장</span>" : "<span class='ok'>✅ 없음 (정상)"?>
+            </td>
+        </tr>
+    </table>
+    <?php endif; ?>
+
+    <hr class="section-divider">
+
+    <h3 style="font-size:15px; margin-bottom:10px;">③ 차종 등록 회원 현황</h3>
+    <?php
+    $car_reg_members = q($conn, "SELECT mb_id, mb_name, mb_nick, mb_7, mb_1, mb_2, mb_3, mb_4, mb_5, mb_6
+        FROM `{$p}member` WHERE mb_4 != '' AND mb_4 != '0' AND mb_4 IS NOT NULL
+        ORDER BY mb_datetime DESC LIMIT 10");
+    $car_unreg_count = q1($conn, "SELECT COUNT(*) AS cnt FROM `{$p}member` WHERE mb_4='' OR mb_4='0' OR mb_4 IS NULL");
+    ?>
+    <p style="font-size:13px; color:#666;">
+        차종 등록 회원: <strong class="ok"><?=count($car_reg_members)?>명 (최근 10명 표시)</strong> |
+        차종 미등록 회원: <strong><?=number_format($car_unreg_count['cnt'])?></strong>명
+    </p>
+    <?php if ($car_reg_members): ?>
+    <table>
+        <tr><th>ID</th><th>이름</th><th>회원유형</th><th>브랜드</th><th>시리즈</th><th>모델</th><th>ID (mb_4/5/6)</th></tr>
+        <?php foreach ($car_reg_members as $m): ?>
+        <tr>
+            <td><?=htmlspecialchars($m['mb_id'])?></td>
+            <td><?=htmlspecialchars($m['mb_name'])?></td>
+            <td>
+                <?php if ($m['mb_7']==='business'): ?>
+                    <span class="badge b-blue">사업자</span>
+                <?php else: ?>
+                    <span class="badge b-ok">일반</span>
+                <?php endif; ?>
+            </td>
+            <td><?=htmlspecialchars($m['mb_1'])?></td>
+            <td><?=htmlspecialchars($m['mb_2'])?></td>
+            <td><?=htmlspecialchars($m['mb_3'])?></td>
+            <td><code><?=$m['mb_4']?>/<?=$m['mb_5']?>/<?=$m['mb_6']?></code></td>
+        </tr>
+        <?php endforeach; ?>
+    </table>
+    <?php else: ?>
+    <p style="color:#888;">아직 차종 등록 회원이 없습니다.</p>
+    <?php endif; ?>
+
+    <hr class="section-divider">
+
+    <h3 style="font-size:15px; margin-bottom:10px;">④ 주요 파일 존재 여부</h3>
+    <?php
+    $base_path = dirname(__DIR__);
+    $files_to_check = [
+        'extend/partsds.extend.php'                          => '회원가입 이벤트 훅 (핵심)',
+        'partsds/register_car_field.php'                     => '차종선택 폼 HTML',
+        'partsds/css/brand_selector.css'                     => '차종선택 CSS',
+        'partsds/install_shop_categories.sql'                => '3차분류 SQL (실행 필요)',
+        'partsds/install_member_type.sql'                    => '회원유형 초기화 SQL',
+        'theme/eb4_basic/skin/member/basic/register_form.skin.html.php' => '회원가입 폼 스킨',
+    ];
+    ?>
+    <table>
+        <tr><th>파일</th><th>상태</th><th>설명</th></tr>
+        <?php foreach ($files_to_check as $fp => $desc): ?>
+        <tr>
+            <td><code><?=$fp?></code></td>
+            <td><?=file_exists($base_path.'/'.$fp) ? "<span class='ok'>✅ 있음</span>" : "<span class='err'>❌ 없음</span>"?></td>
+            <td><?=$desc?></td>
+        </tr>
+        <?php endforeach; ?>
+    </table>
+
+    <hr class="section-divider">
+
+    <h3 style="font-size:15px; margin-bottom:10px;">⑤ partsds.extend.php 오류 점검</h3>
+    <?php
+    $extend_file = $base_path . '/extend/partsds.extend.php';
+    if (file_exists($extend_file)) {
+        $extend_content = file_get_contents($extend_file);
+        $has_wrong_key   = strpos($extend_content, "g5['g5_member_table']") !== false;
+        $has_correct_key = strpos($extend_content, "g5['member_table']") !== false;
+    ?>
+    <table>
+        <tr><th>점검 항목</th><th>결과</th></tr>
+        <tr>
+            <td>잘못된 테이블 키 사용 <code>$g5['g5_member_table']</code></td>
+            <td><?=$has_wrong_key
+                ? "<span class='err'>❌ 발견됨! → HTTP 500 오류 원인. extend/partsds.extend.php 교체 필요</span>"
+                : "<span class='ok'>✅ 없음 (정상)</span>"?></td>
+        </tr>
+        <tr>
+            <td>올바른 테이블 키 사용 <code>$g5['member_table']</code></td>
+            <td><?=$has_correct_key
+                ? "<span class='ok'>✅ 있음 (정상)</span>"
+                : "<span class='warn'>⚠️ 없음</span>"?></td>
+        </tr>
+    </table>
+    <?php } else { echo "<p class='err'>❌ extend/partsds.extend.php 파일 없음</p>"; } ?>
+
+    <div style="margin-top:16px; padding:12px; background:#e8f4fd; border-radius:6px; font-size:13px;">
+        <strong>📋 회원가입 500 오류 해결 순서:</strong>
+        <ol style="margin:8px 0 0; line-height:2;">
+            <li>서버에 <code>extend/partsds.extend.php</code> 최신 버전 업로드 (FTP/Git)</li>
+            <li><a href="sql_runner.php?key=<?=$key?>&file=install_member_type" target="_blank">install_member_type.sql 실행</a> → 기존 회원 mb_7 기본값 'normal' 설정</li>
+            <li><a href="sql_runner.php?key=<?=$key?>&file=install_shop_categories" target="_blank">install_shop_categories.sql 실행</a> → 3차분류 4,089개 INSERT</li>
+            <li><a href="sql_runner.php?key=<?=$key?>&file=update_ca_id" target="_blank">update_ca_id.sql 실행</a> → car_series/model ca_id 매핑</li>
+            <li>회원가입 테스트</li>
+        </ol>
+    </div>
 </div>
 
 <?php endif; // action ?>
