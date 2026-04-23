@@ -18,7 +18,7 @@ switch ($action) {
 
     case 'brands':
         $result = [];
-        $res = sql_query("SELECT brand_id, brand_name, brand_name_en, brand_logo 
+        $res = sql_query("SELECT brand_id, brand_name, brand_name_en, brand_logo, ca_id 
                           FROM `" . G5_TABLE_PREFIX . "car_brand` 
                           WHERE brand_use = 1 
                           ORDER BY brand_order, brand_id");
@@ -28,6 +28,7 @@ switch ($action) {
                 'name'    => $row['brand_name'],
                 'name_en' => $row['brand_name_en'],
                 'logo'    => $row['brand_logo'] ? G5_URL . '/' . ltrim($row['brand_logo'], '/') : '',
+                'ca_id'   => $row['ca_id'],
             ];
         }
         echo json_encode(['success' => true, 'data' => $result]);
