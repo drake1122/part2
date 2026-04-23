@@ -14,7 +14,7 @@ if (G5_IS_MOBILE) {
     return;
 }
 
-// 테마에 list.php 있으면 include
+// 테마에 list.php 있으면 include (이윗빌더 eyoom/shop/list.php 자동 라우팅)
 if(defined('G5_THEME_SHOP_PATH')) {
     $theme_list_file = G5_THEME_SHOP_PATH.'/list.php';
     if(is_file($theme_list_file)) {
@@ -47,36 +47,147 @@ if(!$is_admin && $config['cf_cert_use']) {
 
 $g5['title'] = $ca['ca_name'].' 상품리스트';
 
+// 상단 디자인 출력
 if ($ca['ca_include_head'] && is_include_path_check($ca['ca_include_head']))
     @include_once($ca['ca_include_head']);
+elseif (defined('EYOOM_SHOP_PATH') && file_exists(EYOOM_SHOP_PATH . '/shop.head.php'))
+    include_once(EYOOM_SHOP_PATH . '/shop.head.php');
 else
-    include_once(defined('EYOOM_SHOP_PATH') ? EYOOM_SHOP_PATH . '/shop.head.php' : G5_SHOP_PATH . '/_head.php');
+    include_once(G5_SHOP_PATH.'/_head.php');
 
-// 스킨경로
-$skin_dir = G5_SHOP_SKIN_PATH;
+// 스킨경로 결정: �Ը요빌더 core 스킨 우선
+if (defined('EYOOM_CORE_PATH') && is_dir(EYOOM_CORE_PATH . '/' . G5_SHOP_DIR)) {
+    $skin_dir = EYOOM_CORE_PATH . '/' . G5_SHOP_DIR;
+} else {
+    $skin_dir = G5_SHOP_SKIN_PATH;
+}
 
+// 카테고리 별도 스킨 지정이 있는 경우
 if($ca['ca_skin_dir']) {
+    $custom_skin_dir = '';
     if(preg_match('#^theme/(.+)$#', $ca['ca_skin_dir'], $match))
-        $skin_dir = G5_THEME_PATH.'/'.G5_SKIN_DIR.'/shop/'.$match[1];
+        $custom_skin_dir = G5_THEME_PATH.'/'.G5_SKIN_DIR.'/shop/'.$match[1];
     else
-        $skin_dir = G5_PATH.'/'.G5_SKIN_DIR.'/shop/'.$ca['ca_skin_dir'];
+        $custom_skin_dir = G5_PATH.'/'.G5_SKIN_DIR.'/shop/'.$ca['ca_skin_dir'];
 
-    if(is_dir($skin_dir)) {
-        $skin_file = $skin_dir.'/'.$ca['ca_skin'];
-
-        if(!is_file($skin_file))
-            $skin_dir = G5_SHOP_SKIN_PATH;
-    } else {
-        $skin_dir = G5_SHOP_SKIN_PATH;
+    if($custom_skin_dir && is_dir($custom_skin_dir)) {
+        $skin_file_check = $custom_skin_dir.'/'.$ca['ca_skin'];
+        if(is_file($skin_file_check))
+            $skin_dir = $custom_skin_dir;
     }
 }
 
-define('G5_SHOP_CSS_URL', str_replace(G5_PATH, G5_URL, $skin_dir));
+if (!defined('G5_SHOP_CSS_URL'))
+    define('G5_SHOP_CSS_URL', str_replace(G5_PATH, G5_URL, $skin_dir));
 
 if ($is_admin)
     echo '<div class="sct_admin"><a href="'.G5_ADMIN_URL.'/shop_admin/categoryform.php?w=u&amp;ca_id='.$ca_id.'" class="btn_admin btn"><span class="sound_only">분류 관리</span><i class="fa fa-cog fa-spin fa-fw"></i></a></div>';
-?>
 
+// 네비게이션, 카테고리, 정렬, 기본 스킨 경로
+$nav_skin = $skin_dir.'/navigation.skin.php';
+if(!is_file($nav_skin)) $nav_skin = G5_SHOP_SKIN_PATH.'/navigation.skin.php';
+
+$cate_skin = $skin_dir.'/listcategory.skin.php';
+if(!is_file($cate_skin)) $cate_skin = G5_SHOP_SKIN_PATH.'/listcategory.skin.php';
+
+$sort_skin = $skin_dir.'/list.sort.skin.php';
+if(!is_file($sort_skin)) $sort_skin = G5_SHOP_SKIN_PATH.'/list.sort.skin.php';
+
+$sub_skin = $skin_dir.'/list.sub.skin.php';
+if(!is_file($sub_skin)) $sub_skin = G5_SHOP_SKIN_PATH.'/list.sub.skin.php';
+
+// 상품 출력순서가 있다면
+if ($sort != "")
+    $order_by = $sort.' '.$sortodr.' , it_order, it_id desc';
+else
+    $order_by = 'it_order, it_id desc';
+
+// 리스트 스킨 파일 결정 (ca_skin='' �Ը 재�Ը됴 수스 = list.10.skin.php)
+$skin_file = is_include_path_check($skin_dir.'/'.$ca['ca_skin']) ? $skin_dir.'/'.$ca['ca_skin'] : $skin_dir.'/list.10.skin.php';
+
+// 파츠디에스 차종 필터 파라멸터
+$pds_brand_id  = isset($_GET['pds_brand'])  ? (int)$_GET['pds_brand']  : 0;
+$pds_series_id = isset($_GET['pds_series']) ? (int)$_GET['pds_series'] : 0;
+$pds_model_id  = isset($_GET['pds_model'])  ? (int)$_GET['pds_model']  : 0;
+
+if (file_exists($skin_file)) {
+    $items = max(1,(int)$ca['ca_list_mod']) * max(1,(int)$ca['ca_list_row']);
+    if ($page < 1) $page = 1;
+    $from_record = ($page - 1) * $items;
+
+    $list = new item_list($skin_file, $ca['ca_list_mod'], $ca['ca_list_row'], $ca['ca_img_width'], $ca['ca_img_height']);
+    $list->set_category($ca['ca_id'], 1);
+    $list->set_category($ca['ca_id'], 2);
+    $list->set_category($ca['ca_id'], 3);
+    $list->set_is_page(true);
+    $list->set_order_by($order_by);
+    $list->set_from_record($from_record);
+    $list->set_view('it_img', true);
+    $list->set_view('it_id', false);
+    $list->set_view('it_name', true);
+    $list->set_view('it_basic', true);
+    $list->set_view('it_cust_price', true);
+    $list->set_view('it_price', true);
+    $list->set_view('it_icon', true);
+    $list->set_view('sns', true);
+
+    // 파츠디에스 차종 필터 적용
+    if ($pds_brand_id) {
+        $pds_filter_file = G5_PATH . '/partsds/car_list_filter.php';
+        if (file_exists($pds_filter_file)) {
+            include_once($pds_filter_file);
+            $pds_item_ids = pds_get_car_items($pds_brand_id, $pds_series_id, $pds_model_id);
+
+            if (empty($pds_item_ids)) {
+                $list->set_query("SELECT * FROM `{$g5['g5_shop_item_table']}` WHERE it_id = '__NO_RESULT__'");
+            } else {
+                $pds_id_list = implode("','", array_map('sql_escape_string', $pds_item_ids));
+                $pds_ca_cond = '';
+                if ($ca['ca_id']) {
+                    $safe_ca = sql_escape_string($ca['ca_id']);
+                    $pds_ca_cond = " AND (ca_id LIKE '{$safe_ca}%' OR ca_id2 LIKE '{$safe_ca}%' OR ca_id3 LIKE '{$safe_ca}%')";
+                }
+                $list->set_query(
+                    "SELECT * FROM `{$g5['g5_shop_item_table']}`"
+                    . " WHERE it_use = '1'"
+                    . $pds_ca_cond
+                    . " AND it_id IN ('{$pds_id_list}')"
+                    . " ORDER BY " . $order_by
+                );
+            }
+        }
+    }
+
+    $item_list   = $list->run();
+    $total_count = $list->total_count;
+    $total_page  = ceil($total_count / $items);
+} else {
+    $item_list   = '<p class="sct_noitem">' . str_replace(G5_PATH.'/', '', $skin_file) . ' 파일을 찾을 수 없습니다.</p>';
+    $total_count = 0;
+    $total_page  = 0;
+}
+
+// 페이징
+$qstr1 = 'ca_id=' . $ca_id . '&amp;sort=' . $sort . '&amp;sortodr=' . $sortodr;
+if (!empty($pds_brand_id)) {
+    $qstr1 .= '&amp;pds_brand=' . $pds_brand_id;
+    if (!empty($pds_series_id)) $qstr1 .= '&amp;pds_series=' . $pds_series_id;
+    if (!empty($pds_model_id))  $qstr1 .= '&amp;pds_model='  . $pds_model_id;
+}
+
+// 이윗빌더 테마 스킨으로 출력 (list.skin.html.php 사용)
+if (defined('EYOOM_THEME_SHOP_SKIN_PATH') && file_exists(EYOOM_THEME_SHOP_SKIN_PATH . '/list.skin.html.php')) {
+    // 페이징 스팅 필요 (eb_paging 함수에서 사용)
+    if (isset($eb) && method_exists($eb, 'set_paging')) {
+        $paging = $eb->set_paging('itemlist', $ca_id, $qstr1);
+    } else {
+        // fallback: 기본 페이징
+        $paging = ['url' => G5_SHOP_URL.'/list.php?'.$qstr1.'&page=', 'pages' => $config['cf_write_pages']];
+    }
+    include_once(EYOOM_THEME_SHOP_SKIN_PATH . '/list.skin.html.php');
+} else {
+    // fallback: 기본 출력 (이윗빌더 경로�없을 때)
+?>
 <script>
 var itemlist_ca_id = "<?php echo $ca_id; ?>";
 </script>
@@ -84,150 +195,29 @@ var itemlist_ca_id = "<?php echo $ca_id; ?>";
 
 <!-- 상품 목록 시작 { -->
 <div id="sct">
-
-    <?php
-    $nav_skin = $skin_dir.'/navigation.skin.php';
-    if(!is_file($nav_skin))
-        $nav_skin = G5_SHOP_SKIN_PATH.'/navigation.skin.php';
-    include $nav_skin;
-
-    // 상단 HTML
-    echo '<div id="sct_hhtml">'.conv_content($ca['ca_head_html'], 1).'</div>';
-
-    // 파츠디에스 차종 필터 바 표시
-    $pds_brand_id  = isset($_GET['pds_brand'])  ? (int)$_GET['pds_brand']  : 0;
-    $pds_series_id = isset($_GET['pds_series']) ? (int)$_GET['pds_series'] : 0;
-    $pds_model_id  = isset($_GET['pds_model'])  ? (int)$_GET['pds_model']  : 0;
-    if ($pds_brand_id) {
-        $pds_filter_file = G5_PATH . '/partsds/car_list_filter.php';
-        if (file_exists($pds_filter_file)) {
-            include_once($pds_filter_file);
-            echo pds_render_filter_bar($pds_brand_id, $pds_series_id, $pds_model_id);
-        }
-    }
-
-
-    $cate_skin = $skin_dir.'/listcategory.skin.php';
-    if(!is_file($cate_skin))
-        $cate_skin = G5_SHOP_SKIN_PATH.'/listcategory.skin.php';
-    include $cate_skin;
-
-    // 상품 출력순서가 있다면
-    if ($sort != "")
-        $order_by = $sort.' '.$sortodr.' , it_order, it_id desc';
-    else
-        $order_by = 'it_order, it_id desc';
-
-    $error = '<p class="sct_noitem">등록된 상품이 없습니다.</p>';
-
-    // 리스트 스킨
-    $skin_file = is_include_path_check($skin_dir.'/'.$ca['ca_skin']) ? $skin_dir.'/'.$ca['ca_skin'] : $skin_dir.'/list.10.skin.php';
-
-    if (file_exists($skin_file)) {
-
-		echo '<div id="sct_sortlst">';
-        $sort_skin = $skin_dir.'/list.sort.skin.php';
-        if(!is_file($sort_skin))
-            $sort_skin = G5_SHOP_SKIN_PATH.'/list.sort.skin.php';
-        include $sort_skin;
-
-        // 상품 보기 타입 변경 버튼
-        $sub_skin = $skin_dir.'/list.sub.skin.php';
-        if(!is_file($sub_skin))
-            $sub_skin = G5_SHOP_SKIN_PATH.'/list.sub.skin.php';
-        include $sub_skin;
-        echo '</div>';
-
-        // 총몇개 = 한줄에 몇개 * 몇줄
-        $items = max(1,(int)$ca['ca_list_mod']) * max(1,(int)$ca['ca_list_row']);
-        // 페이지가 없으면 첫 페이지 (1 페이지)
-        if ($page < 1) $page = 1;
-        // 시작 레코드 구함
-        $from_record = ($page - 1) * $items;
-
-        $list = new item_list($skin_file, $ca['ca_list_mod'], $ca['ca_list_row'], $ca['ca_img_width'], $ca['ca_img_height']);
-        $list->set_category($ca['ca_id'], 1);
-        $list->set_category($ca['ca_id'], 2);
-        $list->set_category($ca['ca_id'], 3);
-        $list->set_is_page(true);
-        $list->set_order_by($order_by);
-        $list->set_from_record($from_record);
-        $list->set_view('it_img', true);
-        $list->set_view('it_id', false);
-        $list->set_view('it_name', true);
-        $list->set_view('it_basic', true);
-        $list->set_view('it_cust_price', true);
-        $list->set_view('it_price', true);
-        $list->set_view('it_icon', true);
-        $list->set_view('sns', true);
-
-        // 파츠디에스 차종 필터 적용 (pds_brand, pds_series, pds_model 파라미터)
-        $pds_brand_id  = isset($_GET['pds_brand'])  ? (int)$_GET['pds_brand']  : 0;
-        $pds_series_id = isset($_GET['pds_series']) ? (int)$_GET['pds_series'] : 0;
-        $pds_model_id  = isset($_GET['pds_model'])  ? (int)$_GET['pds_model']  : 0;
-
-        if ($pds_brand_id) {
-            $pds_filter_file = G5_PATH . '/partsds/car_list_filter.php';
-            if (file_exists($pds_filter_file)) {
-                include_once($pds_filter_file);
-                $pds_item_ids = pds_get_car_items($pds_brand_id, $pds_series_id, $pds_model_id);
-
-                if (empty($pds_item_ids)) {
-                    // 해당 차종 상품 없음 → 빈 결과 강제
-                    $list->set_query("SELECT * FROM `{$g5['g5_shop_item_table']}` WHERE it_id = '__NO_RESULT__'");
-                } else {
-                    // 차종 필터 + 카테고리 조건 결합 쿼리
-                    $pds_id_list = implode("','", $pds_item_ids); // already escaped by pds_get_car_items()
-                    $pds_ca_cond = '';
-                    if ($ca['ca_id']) {
-                        $pds_ca_cond = " AND (ca_id LIKE '" . sql_escape_string($ca['ca_id']) . "%'"
-                                     . " OR ca_id2 LIKE '" . sql_escape_string($ca['ca_id']) . "%'"
-                                     . " OR ca_id3 LIKE '" . sql_escape_string($ca['ca_id']) . "%')";
-                    }
-                    $list->set_query(
-                        "SELECT * FROM `{$g5['g5_shop_item_table']}`"
-                        . " WHERE it_use = '1'"
-                        . $pds_ca_cond
-                        . " AND it_id IN ('" . $pds_id_list . "')"
-                        . " ORDER BY " . $order_by
-                    );
-                }
-            }
-        }
-
-        echo $list->run();
-
-        // where 된 전체 상품수
-        $total_count = $list->total_count;
-        // 전체 페이지 계산
-        $total_page  = ceil($total_count / $items);
-    }
-    else
-    {
-        echo '<div class="sct_nofile">'.str_replace(G5_PATH.'/', '', $skin_file).' 파일을 찾을 수 없습니다.<br>관리자에게 알려주시면 감사하겠습니다.</div>';
-    }
-
-    $qstr1 = 'ca_id='.$ca_id;
-    $qstr1 .='&amp;sort='.$sort.'&amp;sortodr='.$sortodr;
-    // 파츠디에스 차종 필터 페이지 반영
-    if (!empty($pds_brand_id)) {
-        $qstr1 .= '&amp;pds_brand=' . $pds_brand_id;
-        if (!empty($pds_series_id)) $qstr1 .= '&amp;pds_series=' . $pds_series_id;
-        if (!empty($pds_model_id))  $qstr1 .= '&amp;pds_model='  . $pds_model_id;
-    }
-    echo get_paging($config['cf_write_pages'], $page, $total_page, $_SERVER['SCRIPT_NAME'].'?'.$qstr1.'&amp;page=');
-
-    // 하단 HTML
-    echo '<div id="sct_thtml">'.conv_content($ca['ca_tail_html'], 1).'</div>';
-
-?>
+    <?php include $nav_skin; ?>
+    <div id="sct_hhtml"><?php echo conv_content($ca['ca_head_html'], 1); ?></div>
+    <?php include $cate_skin; ?>
+    <div id="sct_sortlst">
+        <?php include $sort_skin; ?>
+        <?php include $sub_skin; ?>
+    </div>
+    <div id="product_list">
+        <?php echo $item_list; ?>
+    </div>
+    <?php echo get_paging($config['cf_write_pages'], $page, $total_page, $_SERVER['SCRIPT_NAME'].'?'.$qstr1.'&amp;page='); ?>
+    <div id="sct_thtml"><?php echo conv_content($ca['ca_tail_html'], 1); ?></div>
 </div>
 <!-- } 상품 목록 끝 -->
-
 <?php
+}
+
+// 하단 디자인 출력
 if ($ca['ca_include_tail'] && is_include_path_check($ca['ca_include_tail']))
     @include_once($ca['ca_include_tail']);
+elseif (defined('EYOOM_SHOP_PATH') && file_exists(EYOOM_SHOP_PATH . '/shop.tail.php'))
+    include_once(EYOOM_SHOP_PATH . '/shop.tail.php');
 else
-    include_once(defined('EYOOM_SHOP_PATH') ? EYOOM_SHOP_PATH . '/shop.tail.php' : G5_SHOP_PATH . '/_tail.php');
+    include_once(G5_SHOP_PATH.'/_tail.php');
 
 echo "\n<!-- {$ca['ca_skin']} -->\n";
