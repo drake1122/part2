@@ -67,8 +67,9 @@ function pds_get_car_filter_info($brand_id, $series_id, $model_id) {
 
 /**
  * 차종 필터 바 HTML 반환 (상품 목록 상단에 표시)
+ * $auto: true이면 로그인 회원 차종 자동 적용 안내 표시
  */
-function pds_render_filter_bar($brand_id, $series_id, $model_id) {
+function pds_render_filter_bar($brand_id, $series_id, $model_id, $auto = false) {
     if (!$brand_id) return '';
 
     $info = pds_get_car_filter_info($brand_id, $series_id, $model_id);
@@ -77,18 +78,33 @@ function pds_render_filter_bar($brand_id, $series_id, $model_id) {
     if ($info['series']) $label .= ' > ' . $info['series'];
     if ($info['model'])  $label .= ' > ' . $info['model'];
 
+    // 필터 해제 URL (pds_no_filter=1 → 자동 필터 비활성화)
     $clear_url = strtok($_SERVER['REQUEST_URI'], '?');
     $ca_id = isset($_GET['ca_id']) ? htmlspecialchars($_GET['ca_id']) : '';
-    if ($ca_id) $clear_url .= '?ca_id=' . $ca_id;
+    $clear_params = $ca_id ? '?ca_id=' . $ca_id . '&pds_no_filter=1' : '?pds_no_filter=1';
+    $clear_url .= $clear_params;
+
+    // 전체보기 URL (필터 없이)
+    $all_url = strtok($_SERVER['REQUEST_URI'], '?');
+    if ($ca_id) $all_url .= '?ca_id=' . $ca_id . '&pds_no_filter=1';
+    else $all_url .= '?pds_no_filter=1';
 
     ob_start();
     ?>
-    <div class="pds-filter-bar" style="padding:10px 15px; background:#f8f9fa; border:1px solid #dee2e6; border-radius:4px; margin-bottom:15px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <div class="pds-filter-bar" style="padding:10px 15px; background:<?php echo $auto ? '#fff8e1' : '#f8f9fa'; ?>; border:1px solid <?php echo $auto ? '#ffe082' : '#dee2e6'; ?>; border-radius:4px; margin-bottom:15px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <?php if ($auto): ?>
+        <span style="font-size:12px; color:#f57c00; font-weight:bold;"><i class="fas fa-car"></i> 내 차종 자동 필터:</span>
+        <?php else: ?>
         <span style="font-size:13px; color:#666;"><i class="fas fa-car"></i> 차종 필터:</span>
+        <?php endif; ?>
         <span style="background:#c0392b; color:#fff; padding:3px 10px; border-radius:20px; font-size:13px;">
             <i class="fas fa-check"></i> <?php echo htmlspecialchars($label); ?>
         </span>
+        <?php if ($auto): ?>
+        <a href="<?php echo $all_url; ?>" style="color:#999; font-size:12px; text-decoration:none;">전체 상품 보기</a>
+        <?php else: ?>
         <a href="<?php echo $clear_url; ?>" style="color:#999; font-size:12px; text-decoration:none;">✕ 필터 해제</a>
+        <?php endif; ?>
     </div>
     <?php
     return ob_get_clean();

@@ -37,6 +37,17 @@ if (!empty($_COOKIE[$ca_id])) {
     <?php /* 상단 HTML */ ?>
     <div id="sct_hhtml" class="m-b-30"><?php echo conv_content($ca['ca_head_html'], 1); ?></div>
 
+    <?php /* 파츠디에스 차종 필터 바 */ ?>
+    <?php
+    if (!empty($pds_brand_id)) {
+        $pds_filter_file = G5_PATH . '/partsds/car_list_filter.php';
+        if (file_exists($pds_filter_file)) {
+            if (!function_exists('pds_render_filter_bar')) include_once($pds_filter_file);
+            echo pds_render_filter_bar($pds_brand_id, $pds_series_id, $pds_model_id, !empty($pds_auto_filter));
+        }
+    }
+    ?>
+
     <div class="shop-list-sort-wrap">
         <?php /* 상품 정렬 선택 시작 */ ?>
         <?php include $sort_skin; ?>
