@@ -1,43 +1,31 @@
 -- =====================================================
--- 파츠디에스 쇼핑몰 분류 출력스킨 일괄 설정 SQL
--- g5_shop_category 테이블의 출력스킨이 비어있는
--- 모든 분류에 list.10.skin.php 를 일괄 적용
--- =====================================================
--- 
--- ✅ 실행 방법:
---    카페24 phpMyAdmin > drake0913 DB 선택 > SQL 탭 > 붙여넣기 후 실행
---
--- ✅ 적용 대상:
---    ca_skin이 비어있는 모든 분류 (브랜드/시리즈/모델 전체)
---
--- ✅ 선택 사항:
---    list.10.skin.php = 4열 그리드 (기본 추천)
---    list.20.skin.php = 다른 그리드 스타일
---
+-- 기존 g5_shop_category 출력스킨 일괄 수정 SQL
+-- ca_skin = '' → 이윰빌더 관리자 '선택' 상태
+-- (이윰빌더는 ca_skin이 빈 값이면 list.10.skin.php를 자동 사용)
+-- 실행: 카페24 phpMyAdmin > SQL 탭에 붙여넣기 실행
 -- =====================================================
 
 SET NAMES utf8mb4;
 
--- ── STEP 1: ca_skin 비어있는 분류 확인 (실행 전 확인용) ──
--- SELECT COUNT(*) as 미설정건수 FROM `g5_shop_category` WHERE ca_skin = '' OR ca_skin IS NULL;
+-- ── 수정 전 현황 확인 (옵션) ──
+-- SELECT COUNT(*) AS total,
+--        SUM(ca_skin != '' AND ca_skin IS NOT NULL) AS has_skin,
+--        SUM(ca_skin = '' OR ca_skin IS NULL) AS empty_skin
+-- FROM `g5_shop_category`;
 
--- ── STEP 2: 출력스킨 일괄 업데이트 ──────────────────────
+-- ── 전체 분류 스킨을 '' (선택) 으로 일괄 업데이트 ──
 UPDATE `g5_shop_category`
 SET
-    `ca_skin`        = 'list.10.skin.php',
-    `ca_mobile_skin` = 'list.10.skin.php',
-    `ca_use`         = '1'
-WHERE
-    `ca_skin` = ''
-    OR `ca_skin` IS NULL;
+  `ca_skin`        = '',
+  `ca_mobile_skin` = '',
+  `ca_use`         = '1';
 
--- ── STEP 3: 확인 쿼리 ───────────────────────────────────
--- SELECT COUNT(*) as 설정완료건수 FROM `g5_shop_category` WHERE ca_skin = 'list.10.skin.php';
--- SELECT ca_id, ca_name, ca_skin FROM `g5_shop_category` LIMIT 10;
+-- ── 수정 후 확인 ──
+-- SELECT ca_id, ca_name, ca_skin FROM `g5_shop_category` ORDER BY ca_id LIMIT 20;
 
 -- =====================================================
--- 완료! 위 UPDATE 실행 후 아래 URL 접속 테스트:
--- http://drake0913.mycafe24.com/shop/list.php?ca_id=10
--- http://drake0913.mycafe24.com/shop/list.php?ca_id=1001
--- http://drake0913.mycafe24.com/shop/list.php?ca_id=101001
+-- 완료!
+-- 모든 분류의 출력스킨이 '' (선택) 상태로 변경됩니다.
+-- 이윰빌더(eyoom/core/shop/list.php)는 ca_skin이 비어있으면
+-- 기본값 list.10.skin.php 를 자동으로 사용합니다.
 -- =====================================================
