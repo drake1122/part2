@@ -2,7 +2,7 @@
 /**
  * 파츠디에스 - 상품 목록 차종 필터 처리
  * 경로: /partsds/car_list_filter.php
- * 
+ *
  * shop/list.php 에서 include 하거나 extend hook 으로 호출
  * 차종 파라미터(pds_brand, pds_series, pds_model)에 따라 상품 ID 목록 반환
  */
@@ -13,24 +13,33 @@ if (!defined('_GNUBOARD_')) exit;
  * @param int $brand_id
  * @param int $series_id
  * @param int $model_id
- * @return array  상품 it_id 배열
+ * @return array  상품 it_id 배열 (raw strings, SQL escape 전)
  */
 function pds_get_car_items($brand_id, $series_id, $model_id) {
-    global $g5;
+    $brand_id  = (int)$brand_id;
+    $series_id = (int)$series_id;
+    $model_id  = (int)$model_id;
 
     $where = [];
-    if ($model_id)  $where[] = "model_id  = " . (int)$model_id;
-    elseif ($series_id) $where[] = "series_id = " . (int)$series_id;
-    elseif ($brand_id)  $where[] = "brand_id  = " . (int)$brand_id;
+    if ($model_id)       $where[] = "model_id  = {$model_id}";
+    elseif ($series_id)  $where[] = "series_id = {$series_id}";
+    elseif ($brand_id)   $where[] = "brand_id  = {$brand_id}";
 
     if (!$where) return [];
+
+    // item_car 테이블 존재 확인
+    $table_check = @sql_fetch("SELECT COUNT(*) AS cnt FROM information_schema.TABLES 
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . G5_TABLE_PREFIX . "item_car'");
+    if (empty($table_check['cnt'])) return [];
 
     $sql = "SELECT DISTINCT it_id FROM `" . G5_TABLE_PREFIX . "item_car` WHERE " . implode(' AND ', $where);
     $res = sql_query($sql);
 
     $ids = [];
     while ($row = sql_fetch_array($res)) {
-        $ids[] = "'" . sql_escape_string($row['it_id']) . "'";
+        if ($row['it_id']) {
+            $ids[] = sql_escape_string($row['it_id']);
+        }
     }
     return $ids;
 }
@@ -39,7 +48,6 @@ function pds_get_car_items($brand_id, $series_id, $model_id) {
  * 차종 필터 정보 반환 (브랜드명, 시리즈명, 모델명)
  */
 function pds_get_car_filter_info($brand_id, $series_id, $model_id) {
-    global $g5;
     $info = ['brand' => '', 'series' => '', 'model' => ''];
 
     if ($brand_id) {
@@ -58,7 +66,7 @@ function pds_get_car_filter_info($brand_id, $series_id, $model_id) {
 }
 
 /**
- * 차종 필터 HTML 출력
+ * 차종 필터 바 HTML 반환 (상품 목록 상단에 표시)
  */
 function pds_render_filter_bar($brand_id, $series_id, $model_id) {
     if (!$brand_id) return '';
@@ -70,16 +78,17 @@ function pds_render_filter_bar($brand_id, $series_id, $model_id) {
     if ($info['model'])  $label .= ' > ' . $info['model'];
 
     $clear_url = strtok($_SERVER['REQUEST_URI'], '?');
-    // ca_id만 유지
     $ca_id = isset($_GET['ca_id']) ? htmlspecialchars($_GET['ca_id']) : '';
     if ($ca_id) $clear_url .= '?ca_id=' . $ca_id;
 
     ob_start();
     ?>
-    <div class="pds-filter-bar">
-        <span class="pds-filter-label"><i class="fas fa-car"></i> 차종 필터:</span>
-        <span class="pds-filter-tag"><i class="fas fa-check"></i> <?php echo htmlspecialchars($label); ?></span>
-        <a href="<?php echo $clear_url; ?>" class="pds-filter-clear">✕ 필터 해제</a>
+    <div class="pds-filter-bar" style="padding:10px 15px; background:#f8f9fa; border:1px solid #dee2e6; border-radius:4px; margin-bottom:15px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span style="font-size:13px; color:#666;"><i class="fas fa-car"></i> 차종 필터:</span>
+        <span style="background:#c0392b; color:#fff; padding:3px 10px; border-radius:20px; font-size:13px;">
+            <i class="fas fa-check"></i> <?php echo htmlspecialchars($label); ?>
+        </span>
+        <a href="<?php echo $clear_url; ?>" style="color:#999; font-size:12px; text-decoration:none;">✕ 필터 해제</a>
     </div>
     <?php
     return ob_get_clean();
