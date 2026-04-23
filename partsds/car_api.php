@@ -153,6 +153,89 @@ switch ($action) {
         ]);
         break;
 
+    /**
+     * 임시 setup 액션: g5_car_model.ca_id 벤츠/BMW 업데이트
+     * 사용법: /partsds/car_api.php?action=setup_ca_id&key=partsds2026
+     * 완료 후 이 case를 삭제하세요
+     */
+    case 'setup_ca_id':
+        // 간단한 보안키 확인
+        $setup_key = isset($_GET['key']) ? $_GET['key'] : '';
+        if ($setup_key !== 'partsds2026') {
+            echo json_encode(['success' => false, 'message' => '인증 실패']);
+            break;
+        }
+
+        $prefix = G5_TABLE_PREFIX;
+        $updated = 0;
+        $errors  = 0;
+
+        // 시리즈 ca_id 캐시 (벤츠 brand_id=1, BMW brand_id=2)
+        $series_map = [];
+        $res = sql_query("SELECT series_id, ca_id FROM `{$prefix}car_series` WHERE ca_id != '' AND brand_id IN (1,2)");
+        while ($row = sql_fetch_array($res)) {
+            $series_map[(int)$row['series_id']] = $row['ca_id'];
+        }
+
+        // 미완료 모델 시리즈별로 처리
+        foreach ($series_map as $series_id => $sca) {
+            $res2 = sql_query("SELECT model_id, model_order FROM `{$prefix}car_model` WHERE series_id = {$series_id} AND ca_id = ''");
+            $rows = [];
+            while ($r = sql_fetch_array($res2)) $rows[] = $r;
+            if (empty($rows)) continue;
+
+            // CASE WHEN UPDATE
+            $cases = '';
+            $ids   = [];
+            foreach ($rows as $r) {
+                $ca = (string)((int)$sca * 100 + (int)$r['model_order']);
+                if (strlen($ca) <= 10) {
+                    $cases .= "WHEN " . (int)$r['model_id'] . " THEN '{$ca}' ";
+                    $ids[]  = (int)$r['model_id'];
+                }
+            }
+            if ($cases && $ids) {
+                $id_str = implode(',', $ids);
+                sql_query("UPDATE `{$prefix}car_model` SET ca_id = CASE model_id {$cases} END WHERE model_id IN ({$id_str})");
+                $updated += count($ids);
+            }
+        }
+
+        // 결과 확인
+        $row = sql_fetch("SELECT COUNT(*) as cnt FROM `{$prefix}car_model` WHERE ca_id != ''");
+        $total_done = (int)$row['cnt'];
+        $row2 = sql_fetch("SELECT COUNT(*) as cnt FROM `{$prefix}car_model` WHERE ca_id = ''");
+        $total_left = (int)$row2['cnt'];
+
+        // 검증 샘플
+        $sample = [];
+        $res3 = sql_query("SELECT cm.model_id, cm.model_name, cm.ca_id, sc.ca_name
+                           FROM `{$prefix}car_model` cm
+                           LEFT JOIN `{$prefix}shop_category` sc ON cm.ca_id = sc.ca_id
+                           JOIN `{$prefix}car_series` cs ON cm.series_id = cs.series_id
+                           WHERE cs.brand_id = 1 AND cs.series_order = 1
+                           ORDER BY cm.model_order LIMIT 5");
+        while ($r = sql_fetch_array($res3)) {
+            $sample[] = [
+                'model_id'  => $r['model_id'],
+                'model_name'=> $r['model_name'],
+                'ca_id'     => $r['ca_id'],
+                'shop_name' => $r['ca_name'],
+                'matched'   => !empty($r['ca_name']),
+            ];
+        }
+
+        echo json_encode([
+            'success'     => true,
+            'updated'     => $updated,
+            'total_done'  => $total_done,
+            'total_left'  => $total_left,
+            'total_model' => $total_done + $total_left,
+            'sample'      => $sample,
+            'message'     => "완료! 총 {$total_done}개 ca_id 연결됨",
+        ], JSON_UNESCAPED_UNICODE);
+        break;
+
     default:
         echo json_encode(['success' => false, 'message' => '잘못된 요청']);
         break;
