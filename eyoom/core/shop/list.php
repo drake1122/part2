@@ -37,7 +37,7 @@ $g5['title'] = $ca['ca_name'].' 상품리스트';
 if ($ca['ca_include_head'] && is_include_path_check($ca['ca_include_head']))
     @include_once($ca['ca_include_head']);
 else
-    include_once(G5_SHOP_PATH.'/_head.php');
+    include_once(EYOOM_SHOP_PATH . '/shop.head.php');
 
 /**
  * 스킨 경로
@@ -85,7 +85,7 @@ if (file_exists($skin_file)) {
     /**
      * 총몇개 = 한줄에 몇개 * 몇줄
      */
-    $items = $ca['ca_list_mod'] * $ca['ca_list_row'];
+    $items = max(1, (int)$ca['ca_list_mod']) * max(1, (int)$ca['ca_list_row']);
 
     /**
      * 페이지가 없으면 첫 페이지 (1 페이지)
@@ -146,6 +146,6 @@ include_once(EYOOM_THEME_SHOP_SKIN_PATH.'/list.skin.html.php');
 if ($ca['ca_include_tail'] && is_include_path_check($ca['ca_include_tail']))
     @include_once($ca['ca_include_tail']);
 else
-    include_once(G5_SHOP_PATH.'/_tail.php');
+    include_once(EYOOM_SHOP_PATH . '/shop.tail.php');
 
 echo "\n<!-- {$ca['ca_skin']} -->\n";

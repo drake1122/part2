@@ -50,7 +50,7 @@ $g5['title'] = $ca['ca_name'].' 상품리스트';
 if ($ca['ca_include_head'] && is_include_path_check($ca['ca_include_head']))
     @include_once($ca['ca_include_head']);
 else
-    include_once(G5_SHOP_PATH.'/_head.php');
+    include_once(defined('EYOOM_SHOP_PATH') ? EYOOM_SHOP_PATH . '/shop.head.php' : G5_SHOP_PATH . '/_head.php');
 
 // 스킨경로
 $skin_dir = G5_SHOP_SKIN_PATH;
@@ -139,7 +139,7 @@ var itemlist_ca_id = "<?php echo $ca_id; ?>";
         echo '</div>';
 
         // 총몇개 = 한줄에 몇개 * 몇줄
-        $items = $ca['ca_list_mod'] * $ca['ca_list_row'];
+        $items = max(1,(int)$ca['ca_list_mod']) * max(1,(int)$ca['ca_list_row']);
         // 페이지가 없으면 첫 페이지 (1 페이지)
         if ($page < 1) $page = 1;
         // 시작 레코드 구함
@@ -228,6 +228,6 @@ var itemlist_ca_id = "<?php echo $ca_id; ?>";
 if ($ca['ca_include_tail'] && is_include_path_check($ca['ca_include_tail']))
     @include_once($ca['ca_include_tail']);
 else
-    include_once(G5_SHOP_PATH.'/_tail.php');
+    include_once(defined('EYOOM_SHOP_PATH') ? EYOOM_SHOP_PATH . '/shop.tail.php' : G5_SHOP_PATH . '/_tail.php');
 
 echo "\n<!-- {$ca['ca_skin']} -->\n";
