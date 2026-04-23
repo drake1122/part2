@@ -18,7 +18,7 @@ switch ($action) {
 
     case 'brands':
         $result = [];
-        $res = sql_query("SELECT brand_id, brand_name, brand_name_en, brand_logo 
+        $res = sql_query("SELECT brand_id, brand_name, brand_name_en, brand_logo, ca_id 
                           FROM `" . G5_TABLE_PREFIX . "car_brand` 
                           WHERE brand_use = 1 
                           ORDER BY brand_order, brand_id");
@@ -28,6 +28,7 @@ switch ($action) {
                 'name'    => $row['brand_name'],
                 'name_en' => $row['brand_name_en'],
                 'logo'    => $row['brand_logo'] ? G5_URL . '/' . ltrim($row['brand_logo'], '/') : '',
+                'ca_id'   => $row['ca_id'],
             ];
         }
         echo json_encode(['success' => true, 'data' => $result]);
@@ -40,14 +41,16 @@ switch ($action) {
             break;
         }
         $result = [];
-        $res = sql_query("SELECT series_id, series_name 
-                          FROM `" . G5_TABLE_PREFIX . "car_series` 
-                          WHERE brand_id = {$brand_id} AND series_use = 1 
-                          ORDER BY series_order, series_id");
+        $res = sql_query("SELECT cs.series_id, cs.series_name, cs.ca_id, sc.ca_id as sc_ca_id
+                          FROM `" . G5_TABLE_PREFIX . "car_series` cs
+                          LEFT JOIN `" . G5_TABLE_PREFIX . "shop_category` sc ON sc.ca_id = cs.ca_id
+                          WHERE cs.brand_id = {$brand_id} AND cs.series_use = 1 
+                          ORDER BY cs.series_order, cs.series_id");
         while ($row = sql_fetch_array($res)) {
             $result[] = [
-                'id'   => (int)$row['series_id'],
-                'name' => $row['series_name'],
+                'id'    => (int)$row['series_id'],
+                'name'  => $row['series_name'],
+                'ca_id' => $row['ca_id'],
             ];
         }
         echo json_encode(['success' => true, 'data' => $result]);
@@ -60,16 +63,18 @@ switch ($action) {
             break;
         }
         $result = [];
-        $res = sql_query("SELECT model_id, model_name, model_year 
-                          FROM `" . G5_TABLE_PREFIX . "car_model` 
-                          WHERE series_id = {$series_id} AND model_use = 1 
-                          ORDER BY model_order, model_id");
+        $res = sql_query("SELECT cm.model_id, cm.model_name, cm.model_year, cm.ca_id, sc.ca_id as sc_ca_id
+                          FROM `" . G5_TABLE_PREFIX . "car_model` cm
+                          LEFT JOIN `" . G5_TABLE_PREFIX . "shop_category` sc ON sc.ca_id = cm.ca_id
+                          WHERE cm.series_id = {$series_id} AND cm.model_use = 1 
+                          ORDER BY cm.model_order, cm.model_id");
         while ($row = sql_fetch_array($res)) {
             $result[] = [
-                'id'   => (int)$row['model_id'],
-                'name' => $row['model_name'] . ($row['model_year'] ? ' (' . $row['model_year'] . ')' : ''),
+                'id'         => (int)$row['model_id'],
+                'name'       => $row['model_name'] . ($row['model_year'] ? ' (' . $row['model_year'] . ')' : ''),
                 'name_plain' => $row['model_name'],
-                'year' => $row['model_year'],
+                'year'       => $row['model_year'],
+                'ca_id'      => $row['ca_id'],
             ];
         }
         echo json_encode(['success' => true, 'data' => $result]);
