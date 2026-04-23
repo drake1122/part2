@@ -1,24 +1,8 @@
 <?php
-/**
- * 파츠디에스 커스텀 shop/list.php
- * 차종 필터(pds_brand, pds_series, pds_model) 파라미터 처리 추가
- */
 include_once('./_common.php');
 
 $ca_id = isset($_REQUEST['ca_id']) ? safe_replace_regex($_REQUEST['ca_id'], 'ca_id') : '';
 $skin = isset($_REQUEST['skin']) ? safe_replace_regex($_REQUEST['skin'], 'skin') : '';
-
-// 파츠디에스 차종 필터 파라미터
-$pds_brand  = isset($_GET['pds_brand'])  ? (int)$_GET['pds_brand']  : 0;
-$pds_series = isset($_GET['pds_series']) ? (int)$_GET['pds_series'] : 0;
-$pds_model  = isset($_GET['pds_model'])  ? (int)$_GET['pds_model']  : 0;
-
-// 차종 필터 있고 ca_id 없으면 전체 상품에서 필터링
-// ca_id 없을 때 대표 카테고리 사용 (첫 번째 활성 카테고리)
-if ($pds_brand && !$ca_id) {
-    $first_ca = sql_fetch("SELECT ca_id FROM {$g5['g5_shop_category_table']} WHERE ca_use = '1' ORDER BY ca_order, ca_id LIMIT 1");
-    // ca_id 없어도 계속 진행 (전체 상품 필터링)
-}
 
 // 상품 리스트에서 다른 필드로 정렬을 하려면 아래의 배열 코드에서 해당 필드를 추가하세요.
 if( isset($sort) && ! in_array($sort, array('it_name', 'it_sum_qty', 'it_price', 'it_use_avg', 'it_use_cnt', 'it_update_time')) ){
@@ -40,53 +24,10 @@ if(defined('G5_THEME_SHOP_PATH')) {
     unset($theme_list_file);
 }
 
-// 카테고리 정보
-if ($ca_id) {
-    $sql = " select * from {$g5['g5_shop_category_table']} where ca_id = '$ca_id' and ca_use = '1'  ";
-    $ca = sql_fetch($sql);
-    if (! (isset($ca['ca_id']) && $ca['ca_id'])) {
-        if (!$pds_brand) {
-            alert('등록된 분류가 없습니다.');
-        }
-        // 차종 필터만 있는 경우 가상 카테고리 설정
-        $ca = [
-            'ca_id'         => '',
-            'ca_name'       => '차종별 부품',
-            'ca_skin'       => 'list.10.skin.php',
-            'ca_skin_dir'   => '',
-            'ca_img_width'  => 200,
-            'ca_img_height' => 200,
-            'ca_list_mod'   => 4,
-            'ca_list_row'   => 5,
-            'ca_head_html'  => '',
-            'ca_tail_html'  => '',
-            'ca_include_head' => '',
-            'ca_include_tail' => '',
-            'ca_cert_use'   => 0,
-            'ca_adult_use'  => 0,
-        ];
-    }
-} elseif ($pds_brand) {
-    // 차종 필터만 있는 경우 가상 카테고리 설정
-    $ca = [
-        'ca_id'         => '',
-        'ca_name'       => '차종별 부품',
-        'ca_skin'       => 'list.10.skin.php',
-        'ca_skin_dir'   => '',
-        'ca_img_width'  => 200,
-        'ca_img_height' => 200,
-        'ca_list_mod'   => 4,
-        'ca_list_row'   => 5,
-        'ca_head_html'  => '',
-        'ca_tail_html'  => '',
-        'ca_include_head' => '',
-        'ca_include_tail' => '',
-        'ca_cert_use'   => 0,
-        'ca_adult_use'  => 0,
-    ];
-} else {
-    alert('분류를 선택해주세요.');
-}
+$sql = " select * from {$g5['g5_shop_category_table']} where ca_id = '$ca_id' and ca_use = '1'  ";
+$ca = sql_fetch($sql);
+if (! (isset($ca['ca_id']) && $ca['ca_id']))
+    alert('등록된 분류가 없습니다.');
 
 // 테마미리보기 스킨 등의 변수 재설정
 if(defined('_THEME_PREVIEW_') && _THEME_PREVIEW_ === true) {
@@ -98,23 +39,13 @@ if(defined('_THEME_PREVIEW_') && _THEME_PREVIEW_ === true) {
 }
 
 // 본인인증, 성인인증체크
-if(!$is_admin && $config['cf_cert_use'] && $ca_id) {
+if(!$is_admin && $config['cf_cert_use']) {
     $msg = shop_member_cert_check($ca_id, 'list');
     if($msg)
         alert($msg, G5_SHOP_URL);
 }
 
-// 차종 필터로 접근시 타이틀 변경
-if ($pds_brand) {
-    include_once(G5_PATH . '/partsds/car_list_filter.php');
-    $filter_info = pds_get_car_filter_info($pds_brand, $pds_series, $pds_model);
-    $filter_label = $filter_info['brand'];
-    if ($filter_info['series']) $filter_label .= ' ' . $filter_info['series'];
-    if ($filter_info['model'])  $filter_label .= ' ' . $filter_info['model'];
-    $g5['title'] = $filter_label . ' 호환 부품';
-} else {
-    $g5['title'] = $ca['ca_name'].' 상품리스트';
-}
+$g5['title'] = $ca['ca_name'].' 상품리스트';
 
 if ($ca['ca_include_head'] && is_include_path_check($ca['ca_include_head']))
     @include_once($ca['ca_include_head']);
@@ -142,7 +73,7 @@ if($ca['ca_skin_dir']) {
 
 define('G5_SHOP_CSS_URL', str_replace(G5_PATH, G5_URL, $skin_dir));
 
-if ($is_admin && $ca_id)
+if ($is_admin)
     echo '<div class="sct_admin"><a href="'.G5_ADMIN_URL.'/shop_admin/categoryform.php?w=u&amp;ca_id='.$ca_id.'" class="btn_admin btn"><span class="sound_only">분류 관리</span><i class="fa fa-cog fa-spin fa-fw"></i></a></div>';
 ?>
 
@@ -155,9 +86,6 @@ var itemlist_ca_id = "<?php echo $ca_id; ?>";
 <div id="sct">
 
     <?php
-    // 파츠디에스 CSS
-    add_stylesheet('<link rel="stylesheet" href="'.G5_URL.'/partsds/css/brand_selector.css?ver='.G5_CSS_VER.'">', 5);
-
     $nav_skin = $skin_dir.'/navigation.skin.php';
     if(!is_file($nav_skin))
         $nav_skin = G5_SHOP_SKIN_PATH.'/navigation.skin.php';
@@ -166,21 +94,23 @@ var itemlist_ca_id = "<?php echo $ca_id; ?>";
     // 상단 HTML
     echo '<div id="sct_hhtml">'.conv_content($ca['ca_head_html'], 1).'</div>';
 
-    // 파츠디에스 - 차종 필터 바 표시
-    if ($pds_brand) {
-        if (!isset($filter_info)) {
-            include_once(G5_PATH . '/partsds/car_list_filter.php');
-            $filter_info = pds_get_car_filter_info($pds_brand, $pds_series, $pds_model);
+    // 파츠디에스 차종 필터 바 표시
+    $pds_brand_id  = isset($_GET['pds_brand'])  ? (int)$_GET['pds_brand']  : 0;
+    $pds_series_id = isset($_GET['pds_series']) ? (int)$_GET['pds_series'] : 0;
+    $pds_model_id  = isset($_GET['pds_model'])  ? (int)$_GET['pds_model']  : 0;
+    if ($pds_brand_id) {
+        $pds_filter_file = G5_PATH . '/partsds/car_list_filter.php';
+        if (file_exists($pds_filter_file)) {
+            include_once($pds_filter_file);
+            echo pds_render_filter_bar($pds_brand_id, $pds_series_id, $pds_model_id);
         }
-        echo pds_render_filter_bar($pds_brand, $pds_series, $pds_model);
     }
 
-    if ($ca_id) {
-        $cate_skin = $skin_dir.'/listcategory.skin.php';
-        if(!is_file($cate_skin))
-            $cate_skin = G5_SHOP_SKIN_PATH.'/listcategory.skin.php';
-        include $cate_skin;
-    }
+
+    $cate_skin = $skin_dir.'/listcategory.skin.php';
+    if(!is_file($cate_skin))
+        $cate_skin = G5_SHOP_SKIN_PATH.'/listcategory.skin.php';
+    include $cate_skin;
 
     // 상품 출력순서가 있다면
     if ($sort != "")
@@ -195,7 +125,7 @@ var itemlist_ca_id = "<?php echo $ca_id; ?>";
 
     if (file_exists($skin_file)) {
 
-        echo '<div id="sct_sortlst">';
+		echo '<div id="sct_sortlst">';
         $sort_skin = $skin_dir.'/list.sort.skin.php';
         if(!is_file($sort_skin))
             $sort_skin = G5_SHOP_SKIN_PATH.'/list.sort.skin.php';
@@ -216,37 +146,9 @@ var itemlist_ca_id = "<?php echo $ca_id; ?>";
         $from_record = ($page - 1) * $items;
 
         $list = new item_list($skin_file, $ca['ca_list_mod'], $ca['ca_list_row'], $ca['ca_img_width'], $ca['ca_img_height']);
-
-        // 카테고리 필터
-        if ($ca_id) {
-            $list->set_category($ca['ca_id'], 1);
-            $list->set_category($ca['ca_id'], 2);
-            $list->set_category($ca['ca_id'], 3);
-        }
-
-        // 파츠디에스 - 차종 필터 적용
-        if ($pds_brand) {
-            if (!function_exists('pds_get_car_items')) {
-                include_once(G5_PATH . '/partsds/car_list_filter.php');
-            }
-            $car_item_ids = pds_get_car_items($pds_brand, $pds_series, $pds_model);
-
-            if (empty($car_item_ids)) {
-                // 해당 차종 상품 없음 -> 강제 빈 결과
-                $list->set_query(" SELECT * FROM {$g5['g5_shop_item_table']} WHERE it_id = '__NO_RESULT__PARTSDS__' LIMIT 1 ");
-            } else {
-                // item_car 테이블의 it_id 목록으로 추가 where 조건 설정
-                $list->set_query(
-                    " SELECT it.* FROM {$g5['g5_shop_item_table']} it
-                      WHERE it.it_id IN (" . implode(',', $car_item_ids) . ")
-                      AND it.it_use = '1' " .
-                    ($ca_id ? " AND (it.ca_id LIKE '" . sql_escape_string($ca_id) . "%' OR it.ca_id2 LIKE '" . sql_escape_string($ca_id) . "%' OR it.ca_id3 LIKE '" . sql_escape_string($ca_id) . "%') " : "") .
-                    " ORDER BY {$order_by}
-                      LIMIT {$from_record}, " . ($ca['ca_list_mod'] * $ca['ca_list_row'])
-                );
-            }
-        }
-
+        $list->set_category($ca['ca_id'], 1);
+        $list->set_category($ca['ca_id'], 2);
+        $list->set_category($ca['ca_id'], 3);
         $list->set_is_page(true);
         $list->set_order_by($order_by);
         $list->set_from_record($from_record);
@@ -258,6 +160,41 @@ var itemlist_ca_id = "<?php echo $ca_id; ?>";
         $list->set_view('it_price', true);
         $list->set_view('it_icon', true);
         $list->set_view('sns', true);
+
+        // 파츠디에스 차종 필터 적용 (pds_brand, pds_series, pds_model 파라미터)
+        $pds_brand_id  = isset($_GET['pds_brand'])  ? (int)$_GET['pds_brand']  : 0;
+        $pds_series_id = isset($_GET['pds_series']) ? (int)$_GET['pds_series'] : 0;
+        $pds_model_id  = isset($_GET['pds_model'])  ? (int)$_GET['pds_model']  : 0;
+
+        if ($pds_brand_id) {
+            $pds_filter_file = G5_PATH . '/partsds/car_list_filter.php';
+            if (file_exists($pds_filter_file)) {
+                include_once($pds_filter_file);
+                $pds_item_ids = pds_get_car_items($pds_brand_id, $pds_series_id, $pds_model_id);
+
+                if (empty($pds_item_ids)) {
+                    // 해당 차종 상품 없음 → 빈 결과 강제
+                    $list->set_query("SELECT * FROM `{$g5['g5_shop_item_table']}` WHERE it_id = '__NO_RESULT__'");
+                } else {
+                    // 차종 필터 + 카테고리 조건 결합 쿼리
+                    $pds_id_list = implode("','", $pds_item_ids); // already escaped by pds_get_car_items()
+                    $pds_ca_cond = '';
+                    if ($ca['ca_id']) {
+                        $pds_ca_cond = " AND (ca_id LIKE '" . sql_escape_string($ca['ca_id']) . "%'"
+                                     . " OR ca_id2 LIKE '" . sql_escape_string($ca['ca_id']) . "%'"
+                                     . " OR ca_id3 LIKE '" . sql_escape_string($ca['ca_id']) . "%')";
+                    }
+                    $list->set_query(
+                        "SELECT * FROM `{$g5['g5_shop_item_table']}`"
+                        . " WHERE it_use = '1'"
+                        . $pds_ca_cond
+                        . " AND it_id IN ('" . $pds_id_list . "')"
+                        . " ORDER BY " . $order_by
+                    );
+                }
+            }
+        }
+
         echo $list->run();
 
         // where 된 전체 상품수
@@ -271,11 +208,13 @@ var itemlist_ca_id = "<?php echo $ca_id; ?>";
     }
 
     $qstr1 = 'ca_id='.$ca_id;
-    // 차종 파라미터 유지
-    if ($pds_brand)  $qstr1 .= '&amp;pds_brand='.$pds_brand;
-    if ($pds_series) $qstr1 .= '&amp;pds_series='.$pds_series;
-    if ($pds_model)  $qstr1 .= '&amp;pds_model='.$pds_model;
     $qstr1 .='&amp;sort='.$sort.'&amp;sortodr='.$sortodr;
+    // 파츠디에스 차종 필터 페이지 반영
+    if (!empty($pds_brand_id)) {
+        $qstr1 .= '&amp;pds_brand=' . $pds_brand_id;
+        if (!empty($pds_series_id)) $qstr1 .= '&amp;pds_series=' . $pds_series_id;
+        if (!empty($pds_model_id))  $qstr1 .= '&amp;pds_model='  . $pds_model_id;
+    }
     echo get_paging($config['cf_write_pages'], $page, $total_page, $_SERVER['SCRIPT_NAME'].'?'.$qstr1.'&amp;page=');
 
     // 하단 HTML
