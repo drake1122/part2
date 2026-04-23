@@ -5,14 +5,6 @@
 if (!defined('_EYOOM_')) exit;
 ?>
 
-<?php /* ---------- 파츠디에스 차종 선택 섹션 시작 ---------- */ ?>
-<?php
-$pds_brand_selector = G5_PATH . '/partsds/brand_selector.php';
-if (file_exists($pds_brand_selector)) {
-    include_once($pds_brand_selector);
-}
-?>
-<?php /* ---------- 파츠디에스 차종 선택 섹션 끝 ---------- */ ?>
 
 <?php /* ---------- 쇼핑몰 메인 EB 슬라이더 시작 ---------- */ ?>
 <div class="shop-main-slider-top">
@@ -219,4 +211,16 @@ if (file_exists($pds_brand_selector)) {
     </section>
     <?php } ?>
     <?php /* ---------- 할인상품 끝 ---------- */ ?>
+    
+    <?php /* ---------- 파츠디에스 차종 선택 섹션 시작 ---------- */ ?>
+    <?php
+    $pds_brand_selector = G5_PATH . '/partsds/brand_selector.php';
+    if (file_exists($pds_brand_selector)) {
+        include_once($pds_brand_selector);
+    }
+    ?>
+    <?php /* ---------- 파츠디에스 차종 선택 섹션 끝 ---------- */ ?>
+
+
+    <?php echo eb_slider('1776909913'); ?>
 </div>

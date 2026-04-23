@@ -1,0 +1,28 @@
+<?php
+if (!defined('_EYOOM_')) exit;
+$countdown = array(
+	"cd_title" => "공사중입니다",
+	"cd_use" => "n",
+	"cd_skin" => "basic",
+	"cd_opendate" => "202604230000",
+	"cd_1_subj" => "",
+	"cd_2_subj" => "",
+	"cd_3_subj" => "",
+	"cd_4_subj" => "",
+	"cd_5_subj" => "",
+	"cd_6_subj" => "",
+	"cd_7_subj" => "",
+	"cd_8_subj" => "",
+	"cd_9_subj" => "",
+	"cd_10_subj" => "",
+	"cd_1" => "",
+	"cd_2" => "",
+	"cd_3" => "",
+	"cd_4" => "",
+	"cd_5" => "",
+	"cd_6" => "",
+	"cd_7" => "",
+	"cd_8" => "",
+	"cd_9" => "",
+	"cd_10" => "",
+);
