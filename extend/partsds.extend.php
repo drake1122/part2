@@ -2,73 +2,69 @@
 /**
  * 파츠디에스 - 그누보드 이벤트 훅 확장 파일
  * 경로: /extend/partsds.extend.php
- * 
+ *
  * 그누보드 extend 폴더에 위치하여 자동 로드됨
- * - 쇼핑몰 상품 목록에 차종 필터 기능 추가
- * - 메인 페이지에 브랜드 선택기 CSS/JS 추가
- * - 회원가입/수정 페이지에 차종 선택 필드 추가
+ * 실제 존재하는 그누보드 이벤트만 사용합니다.
  */
 if (!defined('_GNUBOARD_')) exit;
 
-// 파츠디에스 CSS 등록 (쇼핑몰 및 메인 공통)
-add_event('tail_sub', 'partsds_add_assets', 1);
+// ─────────────────────────────────────────────────────────────────────────────
+// 1) CSS / JS 에셋 등록  (tail_sub 는 그누보드 실제 이벤트가 아님 → head 쪽 로드)
+//    common_header 이벤트로 stylesheet 등록
+// ─────────────────────────────────────────────────────────────────────────────
+add_event('common_header', 'partsds_add_assets', 1);
 function partsds_add_assets() {
     if (defined('G5_USE_SHOP') && G5_USE_SHOP) {
         add_stylesheet('<link rel="stylesheet" href="' . G5_URL . '/partsds/css/brand_selector.css?ver=' . G5_CSS_VER . '">', 5);
     }
 }
 
-/**
- * 차종 필터가 있는 경우 shop/list.php SQL WHERE 조건 추가
- * shop.lib.php의 shop_item_list 후처리
- */
-add_event('shop_item_list_query_before', 'partsds_filter_car_list', 10);
-function partsds_filter_car_list(&$sql_where, &$sql_params) {
-    $brand_id  = isset($_GET['pds_brand'])  ? (int)$_GET['pds_brand']  : 0;
-    $series_id = isset($_GET['pds_series']) ? (int)$_GET['pds_series'] : 0;
-    $model_id  = isset($_GET['pds_model'])  ? (int)$_GET['pds_model']  : 0;
+// ─────────────────────────────────────────────────────────────────────────────
+// 2) 회원가입 폼: 차종 필드 HTML 을 전역 변수에 준비
+//    register_form_before 는 실제 존재하는 그누보드 이벤트
+//    이 변수를 이윰빌더 register_form.skin.html.php 에서 출력
+// ─────────────────────────────────────────────────────────────────────────────
+add_event('register_form_before', 'partsds_prepare_car_field_global', 1);
+function partsds_prepare_car_field_global() {
+    global $partsds_car_field_html, $member;
 
-    if (!$brand_id) return;
+    if (!defined('G5_TABLE_PREFIX')) return;
 
-    include_once(G5_PATH . '/partsds/car_list_filter.php');
-    $item_ids = pds_get_car_items($brand_id, $series_id, $model_id);
+    // car_brand 테이블 존재 여부 체크 (DB 설치 전 오류 방지)
+    $table_check = @sql_fetch("SELECT COUNT(*) AS cnt FROM information_schema.TABLES 
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = '" . G5_TABLE_PREFIX . "car_brand'");
+    if (empty($table_check['cnt'])) return;
 
-    if (empty($item_ids)) {
-        // 해당 차종 상품 없음 -> 결과 없음
-        $sql_where[] = "it.it_id = '__NO_RESULT__'";
+    // 이윰빌더 테마가 활성화되어 있으면 eyoom 스타일 필드 사용
+    if (defined('_EYOOM_')) {
+        include_once(G5_PATH . '/partsds/register_car_field.php');
+        $partsds_car_field_html = partsds_car_field_html_eyoom(is_array($member) ? $member : []);
     } else {
-        $sql_where[] = "it.it_id IN (" . implode(',', $item_ids) . ")";
+        include_once(G5_PATH . '/partsds/register_car_field.php');
+        $partsds_car_field_html = partsds_car_field_html(is_array($member) ? $member : []);
     }
 }
 
-/**
- * 회원가입 폼에 차종 선택 필드 추가
- */
-add_event('register_form_html', 'partsds_register_car_field', 10);
-function partsds_register_car_field() {
-    global $member, $is_member;
-    if (!defined('G5_USE_SHOP') || !G5_USE_SHOP) return;
-    include_once(G5_PATH . '/partsds/register_car_field.php');
-    echo partsds_car_field_html($member);
-}
-
-/**
- * 회원정보 저장 시 차종 저장
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// 3) 회원정보 저장 시 차종 저장
+//    register_form_update_after 는 실제 존재하는 그누보드 이벤트
+// ─────────────────────────────────────────────────────────────────────────────
 add_event('register_form_update_after', 'partsds_save_car_on_register', 10);
-function partsds_save_car_on_register($mb_id) {
+function partsds_save_car_on_register($mb_id, $w = '') {
     $brand_id  = isset($_POST['pds_brand_id'])  ? (int)$_POST['pds_brand_id']  : 0;
     $series_id = isset($_POST['pds_series_id']) ? (int)$_POST['pds_series_id'] : 0;
     $model_id  = isset($_POST['pds_model_id'])  ? (int)$_POST['pds_model_id']  : 0;
-    $brand_name  = isset($_POST['pds_brand_name'])  ? strip_tags($_POST['pds_brand_name'])  : '';
-    $series_name = isset($_POST['pds_series_name']) ? strip_tags($_POST['pds_series_name']) : '';
-    $model_name  = isset($_POST['pds_model_name'])  ? strip_tags($_POST['pds_model_name'])  : '';
+    $brand_name  = isset($_POST['pds_brand_name'])  ? strip_tags(trim($_POST['pds_brand_name']))  : '';
+    $series_name = isset($_POST['pds_series_name']) ? strip_tags(trim($_POST['pds_series_name'])) : '';
+    $model_name  = isset($_POST['pds_model_name'])  ? strip_tags(trim($_POST['pds_model_name']))  : '';
 
+    // 차종 선택이 없으면 처리 안 함
     if (!$brand_id) return;
 
     global $g5;
     $mb_id_safe = sql_escape_string($mb_id);
-    sql_query("UPDATE `{$g5['g5_member_table']}` SET 
+    sql_query("UPDATE `{$g5['g5_member_table']}` SET
                 mb_1 = '" . sql_escape_string($brand_name)  . "',
                 mb_2 = '" . sql_escape_string($series_name) . "',
                 mb_3 = '" . sql_escape_string($model_name)  . "',

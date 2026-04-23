@@ -515,14 +515,11 @@ if ($config['cf_cert_use'] && ($config['cf_cert_simple'] || $config['cf_cert_ipi
             </div>
             <?php } ?>
             <?php } ?>
-            <?php /* 파츠디에스 차종 선택 */ ?>
-            <?php if (defined('G5_USE_SHOP') && G5_USE_SHOP && function_exists('sql_query')) {
-                $tbl_check = @sql_fetch("SELECT 1 FROM `" . G5_TABLE_PREFIX . "car_brand` LIMIT 1");
-                if ($tbl_check !== false) {
-                    include_once(G5_PATH . '/partsds/register_car_field.php');
-                    echo partsds_car_field_html_eyoom($member);
-                }
-            } ?>
+            <?php /* ---- 파츠디에스 차종 선택 필드 ---- */ ?>
+            <?php if (isset($partsds_car_field_html) && $partsds_car_field_html) { ?>
+            <?php echo $partsds_car_field_html; ?>
+            <?php } ?>
+            <?php /* ---- 파츠디에스 차종 선택 필드 끝 ---- */ ?>
             <div class="row">
                 <section class="col-lg-12">
                     <label class="label">자동등록방지</label>

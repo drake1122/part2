@@ -8,6 +8,10 @@
  */
 if (!defined('_GNUBOARD_') && !defined('_EYOOM_')) exit;
 
+// car_brand 테이블 존재 여부 확인 (DB 미설치 시 오류 방지)
+$_pds_check = @sql_fetch("SELECT COUNT(*) AS cnt FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . G5_TABLE_PREFIX . "car_brand'");
+if (empty($_pds_check['cnt'])) return;
+
 // 브랜드 목록 로드
 $brands = [];
 $res = sql_query("SELECT brand_id, brand_name, brand_name_en, brand_logo 
