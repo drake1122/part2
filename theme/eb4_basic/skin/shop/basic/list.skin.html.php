@@ -37,7 +37,29 @@ if (!empty($_COOKIE[$ca_id])) {
     <?php /* 상단 HTML */ ?>
     <div id="sct_hhtml" class="m-b-30"><?php echo conv_content($ca['ca_head_html'], 1); ?></div>
 
-    <?php /* 파츠디에스 차종 필터 바 */ ?>
+    <?php /* ── 파츠디에스 - 파츠 카테고리 그리드 ── */
+    // 파츠 카테고리 그리드: 차종 선택 상태 URL 파라미터 수집 및 전달
+    $pds_parts_file = G5_PATH . '/partsds/parts_category.php';
+    if (file_exists($pds_parts_file)) {
+        // URL 파라미터에서 차종 ID 수집 (brand_selector.php pdsDoSearch가 전달한 값)
+        $pds_brand_id  = isset($_GET['pds_brand_id'])  ? (int)$_GET['pds_brand_id']  : 0;
+        $pds_series_id = isset($_GET['pds_series_id']) ? (int)$_GET['pds_series_id'] : 0;
+        $pds_model_id  = isset($_GET['pds_model_id'])  ? (int)$_GET['pds_model_id']  : 0;
+
+        // 로그인 회원 내 차종 자동 적용 (pds_no_filter 파라미터가 없을 때)
+        $pds_auto_filter = false;
+        if (!$pds_brand_id && $is_member && empty($_GET['pds_no_filter'])) {
+            $pds_brand_id  = (int)$member['mb_4'];
+            $pds_series_id = (int)$member['mb_5'];
+            $pds_model_id  = (int)$member['mb_6'];
+            if ($pds_brand_id) $pds_auto_filter = true;
+        }
+
+        include($pds_parts_file);
+    }
+    ?>
+
+    <?php /* ── 파츠디에스 차종 필터 바 (상품목록 상단 표시) ── */ ?>
     <?php
     if (!empty($pds_brand_id)) {
         $pds_filter_file = G5_PATH . '/partsds/car_list_filter.php';
