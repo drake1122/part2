@@ -32,7 +32,7 @@ var g5_admin_csrf_token_key = "<?php echo (function_exists('admin_csrf_token_key
     <header>
         <div class="header-logo">
             <a href="<?php echo correct_goto_url(G5_ADMIN_URL); ?>">
-                <strong>ADMIN<span>ISTRATOR</span></strong>
+                <strong>파츠디에스<span>|관리자</span></strong>
             </a>
         </div>
         <div class="header-bar">
