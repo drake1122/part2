@@ -21,12 +21,4 @@ $menu['menu400'] = array(
     array('400750', '추가배송비관리', G5_ADMIN_URL . '/shop_admin/sendcostlist.php', 'scf_sendcost', 1),
     array('400410', '미완료주문', G5_ADMIN_URL . '/shop_admin/inorderlist.php', 'scf_inorder', 1),
 
-
-    // PartsDS 관리 메뉴
-    array('400900', '── PartsDS 관리 ──', '#', ''),
-    array('400910', '파츠 마스터 관리',   G5_URL . '/partsds/admin/parts_master.php',   ''),
-    array('400920', '상품 복사 등록',     G5_URL . '/partsds/admin/bulk_copy.php',       ''),
-    array('400930', '엑셀 일괄등록',      G5_URL . '/partsds/admin/parts_excel.php',     ''),
-    array('400940', '재고 알림 관리',     G5_URL . '/partsds/admin/stock_alert.php',     ''),
-    array('400950', '차종 매핑 관리',     G5_URL . '/partsds/admin/item_car_manage.php', ''),
 );
