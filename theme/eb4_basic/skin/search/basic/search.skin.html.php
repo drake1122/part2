@@ -45,6 +45,11 @@ add_stylesheet('<link rel="stylesheet" href="'.EYOOM_THEME_URL.'/plugins/sweetal
 .search-result-list .sch_word {color:#3949ab;font-weight:700}
 </style>
 
+<?php /* ── 파츠디에스 - 파츠 카테고리 이미지 그리드 바 ── */
+$pds_cat_bar_file = G5_PATH . '/partsds/pds_parts_category_bar.php';
+if (file_exists($pds_cat_bar_file)) include($pds_cat_bar_file);
+?>
+
 <div class="search-result">
     <form name="fsearch" onsubmit="return fsearch_submit(this);" method="get" class="eyoom-form">
     <input type="hidden" name="srows" value="<?php echo $srows; ?>">

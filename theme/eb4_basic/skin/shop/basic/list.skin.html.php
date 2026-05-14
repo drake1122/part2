@@ -59,6 +59,11 @@ if (!empty($_COOKIE[$ca_id])) {
     }
     ?>
 
+    <?php /* ── 파츠디에스 - 파츠 카테고리 이미지 그리드 바 ── */
+    $pds_cat_bar_file = G5_PATH . '/partsds/pds_parts_category_bar.php';
+    if (file_exists($pds_cat_bar_file)) include($pds_cat_bar_file);
+    ?>
+
     <?php /* ── 파츠디에스 차종 필터 바 (상품목록 상단 표시) ── */ ?>
     <?php
     if (!empty($pds_brand_id)) {
