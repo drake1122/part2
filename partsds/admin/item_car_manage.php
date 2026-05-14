@@ -23,8 +23,7 @@ if ($action === 'add_mapping') {
     if ($it_id && $brand_id) {
         // 중복 체크
         $exist = sql_fetch("SELECT id FROM `" . G5_TABLE_PREFIX . "item_car` 
-                            WHERE it_id='" . sql_escape_string($it_id) . "'
-                            AND brand_id={$brand_id} AND series_id={$series_id} AND model_id={$model_id}");
+                            WHERE it_id='" . sql_escape_string($it_id) . "' AND brand_id={$brand_id} AND series_id={$series_id} AND model_id={$model_id}");
         if (!$exist['id']) {
             sql_query("INSERT INTO `" . G5_TABLE_PREFIX . "item_car` (it_id, brand_id, series_id, model_id) VALUES
                       ('" . sql_escape_string($it_id) . "', {$brand_id}, {$series_id}, {$model_id})");

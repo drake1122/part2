@@ -144,8 +144,7 @@ if (isset($_POST['act']) && $_POST['act'] === 'save') {
             pm_part_code='{$esc_part}', pm_parts_ca='{$parts_ca}', pm_name='{$esc_name}',
             pm_brand='{$esc_brand}', pm_price={$price}, pm_supply={$supply},
             pm_img_url='{$esc_img}', pm_img_add='{$esc_add}', pm_detail_html='{$esc_det}',
-            pm_sync_yn='{$sync_yn}', pm_qty_unit='{$esc_unit}', pm_memo='{$esc_memo}'
-            WHERE pm_id = {$pm_id}");
+            pm_sync_yn='{$sync_yn}', pm_qty_unit='{$esc_unit}', pm_memo='{$esc_memo}' WHERE pm_id = {$pm_id}");
 
         // 동기화 처리
         $master_new = sql_fetch("SELECT * FROM `" . PDS_MASTER_TABLE . "` WHERE pm_id = {$pm_id}");
@@ -273,22 +272,19 @@ function pds_sync_to_items($master, $changed_field, $new_value) {
                 $img = sql_escape_string($new_value);
                 $update_sql = "UPDATE `" . G5_TABLE_PREFIX . "shop_item`
                                SET it_img1 = '{$img}', it_img2 = '{$img}',
-                                   it_img3 = '{$img}', it_img4 = '{$img}'
-                               WHERE it_id = '{$it_id}'";
+                                   it_img3 = '{$img}', it_img4 = '{$img}' WHERE it_id = '{$it_id}'";
                 break;
 
             case 'pm_img_add':
                 $img_add = sql_escape_string($new_value);
                 $update_sql = "UPDATE `" . G5_TABLE_PREFIX . "shop_item`
-                               SET it_img5 = '{$img_add}'
-                               WHERE it_id = '{$it_id}'";
+                               SET it_img5 = '{$img_add}' WHERE it_id = '{$it_id}'";
                 break;
 
             case 'pm_detail_html':
                 $detail = sql_escape_string($new_value);
                 $update_sql = "UPDATE `" . G5_TABLE_PREFIX . "shop_item`
-                               SET it_detail = '{$detail}'
-                               WHERE it_id = '{$it_id}'";
+                               SET it_detail = '{$detail}' WHERE it_id = '{$it_id}'";
                 break;
         }
 
@@ -673,8 +669,7 @@ $f = $edit ?: [];
     $res_l = sql_query("SELECT si.it_id, si.it_name, sc.ca_name, si.it_price
                          FROM `" . G5_TABLE_PREFIX . "shop_item` si
                          LEFT JOIN `" . G5_TABLE_PREFIX . "shop_category` sc ON si.ca_id = sc.ca_id
-                         WHERE si.it_id_code = '" . sql_escape_string($edit['pm_part_code']) . "'
-                         ORDER BY sc.ca_id, si.it_id LIMIT 100");
+                         WHERE si.it_id_code = '" . sql_escape_string($edit['pm_part_code']) . "' ORDER BY sc.ca_id, si.it_id LIMIT 100");
     while ($r = sql_fetch_array($res_l)) $linked[] = $r;
     ?>
     <?php if ($linked): ?>

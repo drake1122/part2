@@ -167,8 +167,7 @@ function pds_get_low_stock_items($threshold = null) {
                sa.sa_sent_yn, sa.sa_sent_dt
         FROM `" . PDS_SHOP_ITEM . "` si
         LEFT JOIN `" . PDS_ALERT_TABLE . "` sa ON si.it_id = sa.sa_it_id
-        WHERE si.it_use = '1'
-          AND si.it_stock_qty >= 0
+        WHERE si.it_use = '1' AND si.it_stock_qty >= 0
           AND si.it_stock_qty < IFNULL(sa.sa_threshold, {$threshold})
         ORDER BY si.it_stock_qty ASC, si.it_name ASC
         LIMIT 500

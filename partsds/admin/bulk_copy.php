@@ -33,8 +33,7 @@ if ($ajax === 'get_categories') {
     $rows = [];
     if ($brand_ca) {
         $res = sql_query("SELECT ca_id, ca_name FROM `" . G5_TABLE_PREFIX . "shop_category`
-                          WHERE ca_id LIKE '{$brand_ca}%' AND ca_id != '{$brand_ca}'
-                          ORDER BY ca_id ASC LIMIT 200");
+                          WHERE ca_id LIKE '{$brand_ca}%' AND ca_id != '{$brand_ca}' ORDER BY ca_id ASC LIMIT 200");
         while ($r = sql_fetch_array($res)) $rows[] = $r;
     }
     echo json_encode($rows);
@@ -49,8 +48,7 @@ if ($ajax === 'get_items') {
     if ($ca_id) {
         $res = sql_query("SELECT it_id, it_name, it_price, it_sell_price, ca_id, it_id_code
                           FROM `" . PDS_COPY_SHOP_ITEM . "`
-                          WHERE ca_id = '{$ca_id}' AND it_use = '1'
-                          ORDER BY it_name ASC LIMIT 500");
+                          WHERE ca_id = '{$ca_id}' AND it_use = '1' ORDER BY it_name ASC LIMIT 500");
         while ($r = sql_fetch_array($res)) $rows[] = $r;
     }
     echo json_encode($rows);
@@ -186,8 +184,7 @@ if ($ajax === 'do_copy' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($new_brand_id) {
             // 새 차종 매핑
             $exist_map = sql_fetch("SELECT id FROM `" . PDS_COPY_ITEM_CAR . "`
-                WHERE it_id='" . $esc($new_it_id) . "'
-                AND brand_id={$new_brand_id} AND series_id={$new_series_id} AND model_id={$new_model_id}");
+                WHERE it_id='" . $esc($new_it_id) . "' AND brand_id={$new_brand_id} AND series_id={$new_series_id} AND model_id={$new_model_id}");
             if (!$exist_map['id']) {
                 sql_query("INSERT INTO `" . PDS_COPY_ITEM_CAR . "` (it_id, brand_id, series_id, model_id)
                     VALUES ('" . $esc($new_it_id) . "', {$new_brand_id}, {$new_series_id}, {$new_model_id})");
@@ -199,8 +196,7 @@ if ($ajax === 'do_copy' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $map_res = sql_query("SELECT * FROM `" . PDS_COPY_ITEM_CAR . "` WHERE it_id = '" . $esc($src_id) . "'");
             while ($m = sql_fetch_array($map_res)) {
                 $exist_map = sql_fetch("SELECT id FROM `" . PDS_COPY_ITEM_CAR . "`
-                    WHERE it_id='" . $esc($new_it_id) . "'
-                    AND brand_id={$m['brand_id']} AND series_id={$m['series_id']} AND model_id={$m['model_id']}");
+                    WHERE it_id='" . $esc($new_it_id) . "' AND brand_id={$m['brand_id']} AND series_id={$m['series_id']} AND model_id={$m['model_id']}");
                 if (!$exist_map['id']) {
                     sql_query("INSERT INTO `" . PDS_COPY_ITEM_CAR . "` (it_id, brand_id, series_id, model_id)
                         VALUES ('" . $esc($new_it_id) . "', {$m['brand_id']}, {$m['series_id']}, {$m['model_id']})");
@@ -266,8 +262,7 @@ if ($ajax === 'bulk_update' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 // 브랜드 ca_id: 10=벤츠, 20=BMW, 30=아우디 ... (2자리)
 $brand_cats = [];
 $res = sql_query("SELECT ca_id, ca_name FROM `" . G5_TABLE_PREFIX . "shop_category`
-                  WHERE LENGTH(ca_id) = 2 AND ca_id REGEXP '^[0-9]+$'
-                  ORDER BY ca_id ASC LIMIT 50");
+                  WHERE LENGTH(ca_id) = 2 AND ca_id REGEXP '^[0-9]+$' ORDER BY ca_id ASC LIMIT 50");
 while ($r = sql_fetch_array($res)) $brand_cats[] = $r;
 
 // car_brand 테이블에서 브랜드 목록
@@ -278,8 +273,7 @@ while ($r = sql_fetch_array($res2)) $car_brands[] = $r;
 // 파츠 카테고리 (5001~5041)
 $parts_cats = [];
 $res3 = sql_query("SELECT ca_id, ca_name FROM `" . G5_TABLE_PREFIX . "shop_category`
-                   WHERE ca_id BETWEEN '5001' AND '5041'
-                   ORDER BY ca_id ASC");
+                   WHERE ca_id BETWEEN '5001' AND '5041' ORDER BY ca_id ASC");
 while ($r = sql_fetch_array($res3)) $parts_cats[] = $r;
 
 ?>
