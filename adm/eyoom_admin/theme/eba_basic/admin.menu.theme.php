@@ -157,14 +157,6 @@ if ($member['mb_id'] == $config['cf_admin'] || in_array('shop', $mg_auth)) {
             array('400810', '쿠폰존관리', G5_ADMIN_URL . '/shop_admin/couponzonelist.php', 'scf_coupon_zone'),
             array('400750', '추가배송비관리', G5_ADMIN_URL . '/shop_admin/sendcostlist.php', 'scf_sendcost', 1),
             array('400410', '미완료주문', G5_ADMIN_URL . '/shop_admin/inorderlist.php', 'scf_inorder', 1),
-            // ── PartsDS 관리 ─────────────────────────────────────────────
-            array('400900', '── PartsDS 관리 ──',  '#',                                             'pds_sep'),
-            array('400910', '파츠 마스터 관리',      G5_URL . '/partsds/admin/parts_master.php',    'pds_master'),
-            array('400920', '상품 복사 등록',         G5_URL . '/partsds/admin/bulk_copy.php',       'pds_bulk'),
-            array('400930', '엑셀 일괄등록',          G5_URL . '/partsds/admin/parts_excel.php',     'pds_excel'),
-            array('400940', '재고 알림 관리',         G5_URL . '/partsds/admin/stock_alert.php',     'pds_stock'),
-            array('400950', '차종 매핑 관리',         G5_URL . '/partsds/admin/item_car_manage.php', 'pds_carmap'),
-            array('400960', '메인홈 위젯 설정',        G5_URL . '/partsds/admin/pds_home_config.php',  'pds_home'),
         );
     }
 } else {
