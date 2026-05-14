@@ -294,14 +294,12 @@ while ($r = sql_fetch_array($res)) $car_brands[] = $r;
 
 // 파츠 카테고리 (5001~5041)
 $parts_cats = [];
-$res2 = sql_query("SELECT ca_id, ca_name FROM `" . G5_TABLE_PREFIX . "shop_category"
-                   WHERE ca_id BETWEEN '5001' AND '5041' ORDER BY ca_id ASC");
+$res2 = sql_query("SELECT ca_id, ca_name FROM `" . G5_TABLE_PREFIX . "shop_category` WHERE ca_id BETWEEN '5001' AND '5041' ORDER BY ca_id ASC");
 while ($r = sql_fetch_array($res2)) $parts_cats[] = $r;
 
 // 부품브랜드 카테고리 (B01~B99) — install_brand_categories.sql 실행 후 로드
 $brand_cats = [];
-$res3 = sql_query("SELECT ca_id, ca_name FROM `" . G5_TABLE_PREFIX . "shop_category"
-                   WHERE ca_id LIKE 'B%' AND ca_id != 'B0' ORDER BY ca_id ASC");
+$res3 = sql_query("SELECT ca_id, ca_name FROM `" . G5_TABLE_PREFIX . "shop_category` WHERE ca_id LIKE 'B%' AND ca_id != 'B0' ORDER BY ca_id ASC");
 while ($r = sql_fetch_array($res3)) $brand_cats[] = $r;
 
 ?>
