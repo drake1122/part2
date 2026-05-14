@@ -161,11 +161,7 @@ function pds_get_low_stock_items($threshold = null) {
     if ($threshold === null) $threshold = $default_threshold;
 
     // pds_stock_alert 테이블에 개별 임계값이 있으면 그것 우선
-    $res = sql_query("
-        SELECT si.it_id, si.it_name, si.ca_id, si.it_stock_qty,
-               IFNULL(sa.sa_threshold, {$threshold}) as threshold,
-               sa.sa_sent_yn, sa.sa_sent_dt
-        FROM `" . PDS_SHOP_ITEM . "` si
+    $res = sql_query(" SELECT si.it_id, si.it_name, si.ca_id, si.it_stock_qty, IFNULL(sa.sa_threshold, {$threshold}) as threshold, sa.sa_sent_yn, sa.sa_sent_dt FROM `" . PDS_SHOP_ITEM . "` si
         LEFT JOIN `" . PDS_ALERT_TABLE . "` sa ON si.it_id = sa.sa_it_id
         WHERE si.it_use = '1' AND si.it_stock_qty >= 0
           AND si.it_stock_qty < IFNULL(sa.sa_threshold, {$threshold})
@@ -270,8 +266,7 @@ if ($ajax === 'send_alert' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $it_id = preg_replace('/[^0-9a-zA-Z_\-]/', '', $it_id);
         if (!$it_id) continue;
 
-        $item = sql_fetch("SELECT si.it_id, si.it_name, si.it_stock_qty,
-                                  IFNULL(sa.sa_threshold, " . (int)pds_get_config('default_threshold', 5) . ") as threshold
+        $item = sql_fetch("SELECT si.it_id, si.it_name, si.it_stock_qty, IFNULL(sa.sa_threshold, " . (int)pds_get_config('default_threshold', 5) . ") as threshold
                            FROM `" . PDS_SHOP_ITEM . "` si
                            LEFT JOIN `" . PDS_ALERT_TABLE . "` sa ON si.it_id = sa.sa_it_id
                            WHERE si.it_id = '" . sql_escape_string($it_id) . "'");
@@ -293,8 +288,7 @@ if ($ajax === 'send_alert' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         sql_query("INSERT INTO `" . PDS_ALERT_LOG . "`
             (it_id, it_name, stock_qty, threshold, send_to, send_type, send_status, send_msg, trigger_type)
             VALUES (
-                '" . sql_escape_string($it_id) . "',
-                '" . sql_escape_string($item['it_name']) . "',
+                '" . sql_escape_string($it_id) . "', '" . sql_escape_string($item['it_name']) . "',
                 " . (int)$item['it_stock_qty'] . ",
                 " . (int)$item['threshold'] . ",
                 '" . sql_escape_string($send_to) . "',

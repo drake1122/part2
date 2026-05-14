@@ -67,8 +67,7 @@ if ($ajax === 'quick_update' && isset($_POST['pm_id'])) {
             (pm_id, pm_part_code, changed_col, old_val, new_val, sync_count, admin_id)
             VALUES ({$pm_id}, '{$part_code}', '{$field}',
                     '" . sql_escape_string($old_val) . "',
-                    '" . sql_escape_string($value) . "',
-                    {$sync_count}, '" . sql_escape_string($member['mb_id']) . "')");
+                    '" . sql_escape_string($value) . "', {$sync_count}, '" . sql_escape_string($member['mb_id']) . "')");
     }
 
     echo json_encode(['ok' => true, 'sync_count' => $sync_count, 'field' => $field]);
@@ -140,11 +139,7 @@ if (isset($_POST['act']) && $_POST['act'] === 'save') {
     if ($pm_id) {
         // 수정 - 이전값 백업
         $old = sql_fetch("SELECT * FROM `" . PDS_MASTER_TABLE . "` WHERE pm_id = {$pm_id}");
-        sql_query("UPDATE `" . PDS_MASTER_TABLE . "` SET
-            pm_part_code='{$esc_part}', pm_parts_ca='{$parts_ca}', pm_name='{$esc_name}',
-            pm_brand='{$esc_brand}', pm_price={$price}, pm_supply={$supply},
-            pm_img_url='{$esc_img}', pm_img_add='{$esc_add}', pm_detail_html='{$esc_det}',
-            pm_sync_yn='{$sync_yn}', pm_qty_unit='{$esc_unit}', pm_memo='{$esc_memo}' WHERE pm_id = {$pm_id}");
+        sql_query("UPDATE `" . PDS_MASTER_TABLE . "` SET pm_part_code='{$esc_part}', pm_parts_ca='{$parts_ca}', pm_name='{$esc_name}', pm_brand='{$esc_brand}', pm_price={$price}, pm_supply={$supply}, pm_img_url='{$esc_img}', pm_img_add='{$esc_add}', pm_detail_html='{$esc_det}', pm_sync_yn='{$sync_yn}', pm_qty_unit='{$esc_unit}', pm_memo='{$esc_memo}' WHERE pm_id = {$pm_id}");
 
         // 동기화 처리
         $master_new = sql_fetch("SELECT * FROM `" . PDS_MASTER_TABLE . "` WHERE pm_id = {$pm_id}");
@@ -246,8 +241,7 @@ function pds_sync_to_items($master, $changed_field, $new_value) {
     $count = 0;
 
     // 해당 부품번호(자체코드)를 가진 모든 상품 조회
-    $res = sql_query("SELECT it_id FROM `" . G5_TABLE_PREFIX . "shop_item`
-                       WHERE it_id_code = '{$part_code}'");
+    $res = sql_query("SELECT it_id FROM `" . G5_TABLE_PREFIX . "shop_item` WHERE it_id_code = '{$part_code}'");
 
     while ($row = sql_fetch_array($res)) {
         $it_id = sql_escape_string($row['it_id']);
@@ -420,8 +414,7 @@ $tab = $_GET['tab'] ?? 'list';
 // ── 통계 ─────────────────────────────────────────────────
 $stat_master  = sql_fetch("SELECT COUNT(*) AS cnt FROM `" . PDS_MASTER_TABLE . "`");
 $stat_sync_on = sql_fetch("SELECT COUNT(*) AS cnt FROM `" . PDS_MASTER_TABLE . "` WHERE pm_sync_yn='Y'");
-$stat_linked  = sql_fetch("SELECT COUNT(DISTINCT pm.pm_part_code) AS cnt
-    FROM `" . PDS_MASTER_TABLE . "` pm
+$stat_linked  = sql_fetch("SELECT COUNT(DISTINCT pm.pm_part_code) AS cnt FROM `" . PDS_MASTER_TABLE . "` pm
     INNER JOIN `" . G5_TABLE_PREFIX . "shop_item` si ON pm.pm_part_code = si.it_id_code");
 $stat_log = sql_fetch("SELECT COUNT(*) AS cnt FROM `" . PDS_SYNC_LOG . "` WHERE DATE(sync_dt) = CURDATE()");
 ?>
@@ -666,10 +659,7 @@ $f = $edit ?: [];
     <!-- 연결 상품 현황 -->
     <?php
     $linked = [];
-    $res_l = sql_query("SELECT si.it_id, si.it_name, sc.ca_name, si.it_price
-                         FROM `" . G5_TABLE_PREFIX . "shop_item` si
-                         LEFT JOIN `" . G5_TABLE_PREFIX . "shop_category` sc ON si.ca_id = sc.ca_id
-                         WHERE si.it_id_code = '" . sql_escape_string($edit['pm_part_code']) . "' ORDER BY sc.ca_id, si.it_id LIMIT 100");
+    $res_l = sql_query("SELECT si.it_id, si.it_name, sc.ca_name, si.it_price FROM `" . G5_TABLE_PREFIX . "shop_item` si LEFT JOIN `" . G5_TABLE_PREFIX . "shop_category` sc ON si.ca_id = sc.ca_id WHERE si.it_id_code = '" . sql_escape_string($edit['pm_part_code']) . "' ORDER BY sc.ca_id, si.it_id LIMIT 100");
     while ($r = sql_fetch_array($res_l)) $linked[] = $r;
     ?>
     <?php if ($linked): ?>
@@ -752,9 +742,7 @@ $f = $edit ?: [];
 <tbody>
 <?php
 foreach ($parts_ca_list as $cid => $cname) {
-    $row = sql_fetch("SELECT COUNT(*) AS cnt, SUM(pm_sync_yn='Y') AS sync_on,
-                             MIN(pm_price) AS min_p, MAX(pm_price) AS max_p, AVG(pm_price) AS avg_p
-                      FROM `" . PDS_MASTER_TABLE . "` WHERE pm_parts_ca = '{$cid}'");
+    $row = sql_fetch("SELECT COUNT(*) AS cnt, SUM(pm_sync_yn='Y') AS sync_on, MIN(pm_price) AS min_p, MAX(pm_price) AS max_p, AVG(pm_price) AS avg_p FROM `" . PDS_MASTER_TABLE . "` WHERE pm_parts_ca = '{$cid}'");
     if (!$row['cnt']) continue;
     $linked_cnt = sql_fetch("SELECT COUNT(*) AS cnt FROM `" . G5_TABLE_PREFIX . "shop_item` si
                               INNER JOIN `" . PDS_MASTER_TABLE . "` pm ON si.it_id_code = pm.pm_part_code

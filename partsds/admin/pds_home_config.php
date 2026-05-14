@@ -34,8 +34,7 @@ function pds_cfg_set($key, $val, $memo = '') {
 }
 
 /* ── 테이블 존재 여부 확인 ──────────────────────────────── */
-$tbl_check = sql_fetch("SELECT COUNT(*) AS cnt FROM information_schema.TABLES
-    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . PDS_CFG_TABLE . "'");
+$tbl_check = sql_fetch("SELECT COUNT(*) AS cnt FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . PDS_CFG_TABLE . "'");
 $tbl_exists = ($tbl_check['cnt'] > 0);
 
 /* ── POST 처리 (저장) ───────────────────────────────────── */
