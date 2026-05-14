@@ -2,17 +2,21 @@
 /**
  * file: /partsds/pds_parts_category_bar.php
  * 파츠 카테고리 이미지 그리드 바 — 상품 리스트 / 검색 결과 상단에 삽입
+ * v2: 차량 브랜드→시리즈→모델 3단계 셀렉트박스 추가
  *
  * include 방법:
  *   $pds_bar_file = G5_PATH . '/partsds/pds_parts_category_bar.php';
  *   if (file_exists($pds_bar_file)) include($pds_bar_file);
  *
  * 현재 URL 파라미터(ca_id, stx 등)를 유지한 채 ca_id(5001~5041) 링크를 생성합니다.
+ * 차량 선택 셀렉트박스 파라미터: pds_brand, pds_series, pds_model
  */
 if (!defined('_GNUBOARD_') && !defined('_EYOOM_')) exit;
 
 /* ── 카테고리 이미지 BASE URL ─────────────────────────────────────────── */
-define('PDS_CAT_IMG_BASE', '//ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor');
+if (!defined('PDS_CAT_IMG_BASE')) {
+    define('PDS_CAT_IMG_BASE', '//ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor');
+}
 
 /* ── 파츠종류 목록 (ca_id2 코드 → 이미지 + 표시명) ─────────────────── */
 $pds_cat_items = array(
@@ -62,15 +66,199 @@ $pds_cat_items = array(
 /* ── 현재 선택된 ca_id (상품 리스트 페이지의 경우) ─────────────────── */
 $pds_bar_active_ca = isset($ca_id) ? $ca_id : (isset($_GET['ca_id']) ? $_GET['ca_id'] : '');
 
-/* ── 검색 결과 페이지인지 여부 ──────────────────────────────────────── */
-$pds_bar_is_search = (isset($_GET['stx']) && $_GET['stx'] !== '');
+/* ── 현재 선택된 차량 파라미터 ──────────────────────────────────────── */
+$pds_sel_brand  = isset($_GET['pds_brand'])  ? (int)$_GET['pds_brand']  : 0;
+$pds_sel_series = isset($_GET['pds_series']) ? (int)$_GET['pds_series'] : 0;
+$pds_sel_model  = isset($_GET['pds_model'])  ? (int)$_GET['pds_model']  : 0;
+
+/* ── 차량 DB 존재 여부 확인 & 데이터 사전 로드 ──────────────────────── */
+$_pds_has_cardb = false;
+$pds_brands_arr = array();
+$pds_series_arr = array(); // { brand_id: [{id, name}, ...], ... }
+$pds_models_arr = array(); // { series_id: [{id, name}, ...], ... }
+
+if (function_exists('sql_fetch')) {
+    // car_brand 테이블 존재 확인 (SHOW TABLES 방식 — 카페24 권한 호환)
+    $pds_tbl_chk = @sql_query("SHOW TABLES LIKE '" . G5_TABLE_PREFIX . "car_brand'");
+    if ($pds_tbl_chk && @mysql_num_rows($pds_tbl_chk) > 0) {
+        $_pds_has_cardb = true;
+
+        // 브랜드 목록 (use=1)
+        $pds_brand_q = sql_query("SELECT id, name FROM " . G5_TABLE_PREFIX . "car_brand WHERE use_yn=1 ORDER BY sort_order ASC, name ASC");
+        while ($row = sql_fetch_array($pds_brand_q)) {
+            $pds_brands_arr[] = array('id' => (int)$row['id'], 'name' => $row['name']);
+        }
+
+        // 시리즈 전체 목록
+        $pds_series_q = sql_query("SELECT id, brand_id, name FROM " . G5_TABLE_PREFIX . "car_series WHERE use_yn=1 ORDER BY sort_order ASC, name ASC");
+        while ($row = sql_fetch_array($pds_series_q)) {
+            $bid = (int)$row['brand_id'];
+            if (!isset($pds_series_arr[$bid])) $pds_series_arr[$bid] = array();
+            $pds_series_arr[$bid][] = array('id' => (int)$row['id'], 'name' => $row['name']);
+        }
+
+        // 모델 전체 목록
+        $pds_models_q = sql_query("SELECT id, series_id, name FROM " . G5_TABLE_PREFIX . "car_model WHERE use_yn=1 ORDER BY sort_order ASC, name ASC");
+        while ($row = sql_fetch_array($pds_models_q)) {
+            $sid = (int)$row['series_id'];
+            if (!isset($pds_models_arr[$sid])) $pds_models_arr[$sid] = array();
+            $pds_models_arr[$sid][] = array('id' => (int)$row['id'], 'name' => $row['name']);
+        }
+    }
+}
+
+// PHP 배열 → JS JSON 변환
+$pds_brands_json = json_encode($pds_brands_arr, JSON_UNESCAPED_UNICODE);
+$pds_series_json = json_encode($pds_series_arr, JSON_UNESCAPED_UNICODE);
+$pds_models_json = json_encode($pds_models_arr, JSON_UNESCAPED_UNICODE);
 
 /* ── 링크 생성 함수 ─────────────────────────────────────────────────── */
-function pds_cat_link($ca_id_val) {
-    // 상품 리스트 페이지로 이동: /shop/?ca_id=5001
-    return G5_SHOP_URL . '/?ca_id=' . $ca_id_val;
+if (!function_exists('pds_cat_link')) {
+    function pds_cat_link($ca_id_val, $brand=0, $series=0, $model=0) {
+        $url = G5_SHOP_URL . '/?ca_id=' . $ca_id_val;
+        if ($brand)  $url .= '&pds_brand='  . (int)$brand;
+        if ($series) $url .= '&pds_series=' . (int)$series;
+        if ($model)  $url .= '&pds_model='  . (int)$model;
+        return $url;
+    }
 }
 ?>
+
+<?php /* ── 차량 선택 셀렉트박스 ─────────────────────────────────────── */ ?>
+<?php if ($_pds_has_cardb && !empty($pds_brands_arr)): ?>
+<div class="pds-car-select-wrap">
+    <div class="pds-car-select-inner">
+        <span class="pds-car-select-label"><i class="fa fa-car"></i> 차종별 검색</span>
+        <div class="pds-car-selects">
+            <select id="pds_brand_sel" class="pds-sel" onchange="pdsOnBrandChange(this.value)">
+                <option value="">브랜드 선택</option>
+                <?php foreach ($pds_brands_arr as $b): ?>
+                <option value="<?php echo (int)$b['id']; ?>"<?php echo ($pds_sel_brand === (int)$b['id']) ? ' selected' : ''; ?>>
+                    <?php echo htmlspecialchars($b['name']); ?>
+                </option>
+                <?php endforeach; ?>
+            </select>
+            <select id="pds_series_sel" class="pds-sel" onchange="pdsOnSeriesChange(this.value)" <?php echo $pds_sel_brand ? '' : 'disabled'; ?>>
+                <option value="">시리즈 선택</option>
+                <?php if ($pds_sel_brand && isset($pds_series_arr[$pds_sel_brand])): ?>
+                    <?php foreach ($pds_series_arr[$pds_sel_brand] as $s): ?>
+                    <option value="<?php echo (int)$s['id']; ?>"<?php echo ($pds_sel_series === (int)$s['id']) ? ' selected' : ''; ?>>
+                        <?php echo htmlspecialchars($s['name']); ?>
+                    </option>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </select>
+            <select id="pds_model_sel" class="pds-sel" onchange="pdsOnModelChange(this.value)" <?php echo $pds_sel_series ? '' : 'disabled'; ?>>
+                <option value="">모델 선택</option>
+                <?php if ($pds_sel_series && isset($pds_models_arr[$pds_sel_series])): ?>
+                    <?php foreach ($pds_models_arr[$pds_sel_series] as $m): ?>
+                    <option value="<?php echo (int)$m['id']; ?>"<?php echo ($pds_sel_model === (int)$m['id']) ? ' selected' : ''; ?>>
+                        <?php echo htmlspecialchars($m['name']); ?>
+                    </option>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </select>
+            <button type="button" class="pds-car-search-btn" onclick="pdsCarSearch()">검색</button>
+            <?php if ($pds_sel_brand || $pds_sel_series || $pds_sel_model): ?>
+            <a href="<?php echo G5_SHOP_URL; ?>/?ca_id=<?php echo htmlspecialchars($pds_bar_active_ca); ?>" class="pds-car-clear-btn">✕ 차종 초기화</a>
+            <?php endif; ?>
+        </div>
+        <?php if ($pds_sel_brand): ?>
+        <div class="pds-car-selected-info">
+            <?php
+            // 선택된 차량 텍스트 표시
+            $pds_sel_texts = array();
+            foreach ($pds_brands_arr as $b) {
+                if ((int)$b['id'] === $pds_sel_brand) { $pds_sel_texts[] = $b['name']; break; }
+            }
+            if ($pds_sel_series && isset($pds_series_arr[$pds_sel_brand])) {
+                foreach ($pds_series_arr[$pds_sel_brand] as $s) {
+                    if ((int)$s['id'] === $pds_sel_series) { $pds_sel_texts[] = $s['name']; break; }
+                }
+            }
+            if ($pds_sel_model && isset($pds_models_arr[$pds_sel_series])) {
+                foreach ($pds_models_arr[$pds_sel_series] as $m) {
+                    if ((int)$m['id'] === $pds_sel_model) { $pds_sel_texts[] = $m['name']; break; }
+                }
+            }
+            echo '<i class="fa fa-check-circle" style="color:#b8860b;"></i> ' . htmlspecialchars(implode(' > ', $pds_sel_texts)) . ' 부품 검색 중';
+            ?>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<script>
+(function(){
+    var PDS_SERIES = <?php echo $pds_series_json; ?>;
+    var PDS_MODELS = <?php echo $pds_models_json; ?>;
+
+    window.pdsOnBrandChange = function(brandId) {
+        var seriesSel = document.getElementById('pds_series_sel');
+        var modelSel  = document.getElementById('pds_model_sel');
+
+        // 시리즈 초기화
+        seriesSel.innerHTML = '<option value="">시리즈 선택</option>';
+        modelSel.innerHTML  = '<option value="">모델 선택</option>';
+        seriesSel.disabled  = true;
+        modelSel.disabled   = true;
+
+        if (!brandId) return;
+
+        var seriesList = PDS_SERIES[parseInt(brandId)] || [];
+        seriesList.forEach(function(s) {
+            var opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.name;
+            seriesSel.appendChild(opt);
+        });
+        seriesSel.disabled = (seriesList.length === 0);
+    };
+
+    window.pdsOnSeriesChange = function(seriesId) {
+        var modelSel = document.getElementById('pds_model_sel');
+
+        modelSel.innerHTML = '<option value="">모델 선택</option>';
+        modelSel.disabled  = true;
+
+        if (!seriesId) return;
+
+        var modelList = PDS_MODELS[parseInt(seriesId)] || [];
+        modelList.forEach(function(m) {
+            var opt = document.createElement('option');
+            opt.value = m.id;
+            opt.textContent = m.name;
+            modelSel.appendChild(opt);
+        });
+        modelSel.disabled = (modelList.length === 0);
+    };
+
+    window.pdsOnModelChange = function(modelId) {
+        // 모델 변경 시 자동 검색 실행 (선택 사항 — 필요시 주석 해제)
+        // if (modelId) pdsCarSearch();
+    };
+
+    window.pdsCarSearch = function() {
+        var brandId  = document.getElementById('pds_brand_sel').value;
+        var seriesId = document.getElementById('pds_series_sel').value;
+        var modelId  = document.getElementById('pds_model_sel').value;
+
+        // 현재 URL 기반 파라미터 유지 (ca_id, stx 등)
+        var url = new URL(location.href);
+        if (brandId)  { url.searchParams.set('pds_brand',  brandId);  }
+        else          { url.searchParams.delete('pds_brand'); }
+        if (seriesId) { url.searchParams.set('pds_series', seriesId); }
+        else          { url.searchParams.delete('pds_series'); }
+        if (modelId)  { url.searchParams.set('pds_model',  modelId);  }
+        else          { url.searchParams.delete('pds_model'); }
+
+        // 페이지 초기화
+        url.searchParams.delete('page');
+        location.href = url.toString();
+    };
+})();
+</script>
+<?php endif; // $_pds_has_cardb ?>
 
 <?php /* ── 파츠 카테고리 그리드 바 출력 ──────────────────────────────── */ ?>
 <div class="pds-cat-bar-wrap">
@@ -78,7 +266,7 @@ function pds_cat_link($ca_id_val) {
     <div class="pds-cat-bar-grid">
         <?php foreach ($pds_cat_items as $pds_cat): ?>
         <?php $pds_cat_active = ($pds_bar_active_ca === $pds_cat['ca_id']) ? ' active' : ''; ?>
-        <a href="<?php echo pds_cat_link($pds_cat['ca_id']); ?>" class="pds-cat-item<?php echo $pds_cat_active; ?>">
+        <a href="<?php echo pds_cat_link($pds_cat['ca_id'], $pds_sel_brand, $pds_sel_series, $pds_sel_model); ?>" class="pds-cat-item<?php echo $pds_cat_active; ?>">
             <img src="<?php echo PDS_CAT_IMG_BASE . '/' . $pds_cat['img']; ?>"
                  alt="<?php echo htmlspecialchars($pds_cat['name']); ?>"
                  loading="lazy">
@@ -92,6 +280,98 @@ function pds_cat_link($ca_id_val) {
 </div>
 
 <style>
+/* ── PDS 차량 선택 셀렉트박스 ──────────────────────────────────────── */
+.pds-car-select-wrap {
+    background: #f8f4ec;
+    border: 1px solid #e0d4b8;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+}
+.pds-car-select-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.pds-car-select-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #7a5c00;
+    letter-spacing: .04em;
+}
+.pds-car-selects {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+.pds-sel {
+    height: 36px;
+    min-width: 140px;
+    max-width: 200px;
+    padding: 0 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    background: #fff;
+    color: #333;
+    cursor: pointer;
+    flex: 1 1 140px;
+}
+.pds-sel:disabled {
+    background: #f0f0f0;
+    color: #aaa;
+    cursor: not-allowed;
+}
+.pds-car-search-btn {
+    height: 36px;
+    padding: 0 20px;
+    background: #b8860b;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .18s;
+    white-space: nowrap;
+}
+.pds-car-search-btn:hover {
+    background: #9a6f00;
+}
+.pds-car-clear-btn {
+    height: 36px;
+    line-height: 36px;
+    padding: 0 12px;
+    background: #fff;
+    color: #888;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color .18s, border-color .18s;
+    white-space: nowrap;
+}
+.pds-car-clear-btn:hover {
+    color: #c00;
+    border-color: #c00;
+    text-decoration: none;
+}
+.pds-car-selected-info {
+    font-size: 0.82rem;
+    color: #7a5c00;
+    background: #fffbf0;
+    border: 1px solid #e0d4b8;
+    border-radius: 4px;
+    padding: 6px 12px;
+}
+@media (max-width: 767px) {
+    .pds-sel { min-width: 100%; max-width: 100%; flex: 1 1 100%; }
+    .pds-car-search-btn { width: 100%; }
+    .pds-car-clear-btn { width: 100%; text-align: center; }
+}
+
 /* ── PDS 파츠 카테고리 바 ────────────────────────────────────────── */
 .pds-cat-bar-wrap {
     background: #fff;

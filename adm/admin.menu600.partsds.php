@@ -12,4 +12,5 @@ $menu['menu600'] = array(
     array('600400', '재고 알림 관리',   G5_URL . '/partsds/admin/stock_alert.php',     ''),
     array('600500', '차종 매핑 관리',   G5_URL . '/partsds/admin/item_car_manage.php', ''),
     array('600600', '메인홈 위젯 설정', G5_URL . '/partsds/admin/pds_home_config.php', ''),
+    array('600700', '차량 DB 관리',    G5_URL . '/partsds/admin/pds_car_db.php',        ''),
 );
