@@ -87,7 +87,9 @@ if ($ajax === 'reset_map') {
 if ($ajax === 'do_register' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
     $rows        = isset($_POST['rows'])         ? (array)$_POST['rows']        : [];
-    $parts_ca    = isset($_POST['parts_ca'])      ? preg_replace('/[^0-9]/', '', $_POST['parts_ca']) : '';
+    $parts_ca    = isset($_POST['parts_ca'])      ? preg_replace('/[^0-9]/', '',     $_POST['parts_ca'])    : '';
+    $parts_ca2   = isset($_POST['parts_ca2'])     ? preg_replace('/[^0-9a-zA-Z]/', '', $_POST['parts_ca2'])   : ''; // 2차분류 (파츠종류)
+    $parts_ca3   = isset($_POST['parts_ca3'])     ? preg_replace('/[^0-9a-zA-Z]/', '', $_POST['parts_ca3'])   : ''; // 3차분류 (부품브랜드)
     $brand_id    = isset($_POST['brand_id'])      ? (int)$_POST['brand_id']    : 0;
     $series_id   = isset($_POST['series_id'])     ? (int)$_POST['series_id']   : 0;
     $model_id    = isset($_POST['model_id'])      ? (int)$_POST['model_id']    : 0;
@@ -115,7 +117,10 @@ if ($ajax === 'do_register' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             continue;
         }
 
-        // ca_id 결정: 파츠 카테고리가 지정되면 그것 사용, 아니면 Cafe24 매핑
+        // ca_id 결정 (다중분류 지원)
+        // ca_id  = 차종분류 (주분류: Cafe24 매핑 or 직접지정)
+        // ca_id2 = 파츠종류 (5001~5041, parts_ca2로 지정 or 상품명 자동감지)
+        // ca_id3 = 부품브랜드 (B01~B99, parts_ca3로 지정)
         $target_ca = $parts_ca;
         if (!$target_ca) {
             $mapped = $cat_map[$cafe24_ca] ?? null;
@@ -126,6 +131,31 @@ if ($ajax === 'do_register' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $fail++;
             continue;
         }
+
+        // 2차분류(파츠종류) 자동감지: parts_ca2 미지정 시 상품명으로 추정
+        $target_ca2 = $parts_ca2;
+        if (!$target_ca2 && $name) {
+            $parts_keyword_map = [
+                '오일필터'=>'5001','에어필터'=>'5002','에어컨필터'=>'5003','연료필터'=>'5004',
+                '미션오일필터'=>'5005','오일필터하우징'=>'5006','미션오일'=>'5007','엔진오일'=>'5008',
+                '부동액'=>'5009','브레이크오일'=>'5010','브레이크디스크'=>'5011','브레이크패드'=>'5012',
+                '브레이크센서'=>'5013','브레이크캘리퍼'=>'5014','엔진마운트'=>'5015','미션마운트'=>'5016',
+                'V벨트'=>'5017','댐퍼풀리'=>'5018','벨트텐셔너'=>'5019','워터펌프'=>'5020','써머스탯'=>'5021',
+                '라디에이터'=>'5022','알터네이터'=>'5023','에어컨콤프레셔'=>'5024','스타트모터'=>'5025',
+                '흡기매니폴드'=>'5026','고압펌프'=>'5027','인젝터'=>'5028','와이퍼'=>'5029',
+                '드라이브샤프트'=>'5030','쇼바'=>'5031','유니버셜조인트'=>'5032','허브베어링'=>'5033',
+                '휠볼트'=>'5034','프로펠러샤프트'=>'5035','하체부품'=>'5036','산소센서'=>'5037',
+                '점화플러그'=>'5038','예열플러그'=>'5038','라이트'=>'5039','자동차용품'=>'5040',
+            ];
+            foreach ($parts_keyword_map as $kw => $pca) {
+                if (mb_strpos($name, $kw) !== false) {
+                    $target_ca2 = $pca;
+                    break;
+                }
+            }
+            if (!$target_ca2) $target_ca2 = '5041'; // 기타
+        }
+        $target_ca3 = $parts_ca3; // 부품브랜드 (직접지정만, 자동감지 불가)
 
         // it_id 생성: oem번호 + _ca + 타임스탬프(4자리)
         $it_id_base = preg_replace('/[^0-9a-zA-Z]/', '', $oem);
@@ -164,31 +194,44 @@ if ($ajax === 'do_register' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($exist['it_id'] && $overwrite) {
             // UPDATE
+            $ca2_esc = sql_escape_string($target_ca2);
+            $ca3_esc = sql_escape_string($target_ca3);
             $sql = "UPDATE `" . PDS_EXCEL_SHOP_ITEM . "` SET
-                ca_id = '{$ca_esc}',
-                it_name = '{$name_esc}',
-                it_price = {$price_esc},
-                it_sell_price = {$price_esc},
+                ca_id  = '{$ca_esc}',
+                ca_id2 = '{$ca2_esc}',
+                ca_id3 = '{$ca3_esc}',
+                it_name    = '{$name_esc}',
+                it_price   = {$price_esc},
                 it_id_code = '{$oem_esc}',
                 it_img1 = '{$img_esc}',
                 it_img2 = '{$img_esc}',
                 it_img3 = '{$img_esc}',
                 it_img4 = '{$img_esc}',
-                it_detail = '{$detail_esc}',
-                it_update_dt = NOW()
+                it_content = '{$detail_esc}',
+                it_update  = NOW()
                 WHERE it_id = '{$it_id_esc}'";
         } else {
-            // INSERT
+            // INSERT (다중분류 ca_id2/ca_id3 포함)
+            $ca2_esc = sql_escape_string($target_ca2);
+            $ca3_esc = sql_escape_string($target_ca3);
             $sql = "INSERT INTO `" . PDS_EXCEL_SHOP_ITEM . "`
-                (it_id, ca_id, it_name, it_price, it_sell_price, it_supply_price,
+                (it_id, ca_id, ca_id2, ca_id3,
+                 it_name, it_info, it_content,
+                 it_price, it_cust_price, it_supply_price,
                  it_id_code, it_img1, it_img2, it_img3, it_img4,
-                 it_detail, it_use, it_type, it_delivery, it_delivery_price,
-                 it_tax_type, it_tax_rate, it_order, it_reg_dt, it_update_dt)
+                 it_sell_display, it_sell_use,
+                 it_hit, it_order, it_point, it_point_type,
+                 it_minimum, it_maximum,
+                 it_regdate, it_update)
                 VALUES
-                ('{$it_id_esc}', '{$ca_esc}', '{$name_esc}', {$price_esc}, {$price_esc}, 0,
+                ('{$it_id_esc}', '{$ca_esc}', '{$ca2_esc}', '{$ca3_esc}',
+                 '{$name_esc}', '', '{$detail_esc}',
+                 {$price_esc}, 0, 0,
                  '{$oem_esc}', '{$img_esc}', '{$img_esc}', '{$img_esc}', '{$img_esc}',
-                 '{$detail_esc}', '1', '1', '2', 3000,
-                 '1', 10, 0, NOW(), NOW())";
+                 1, 1,
+                 0, 0, 0, '%',
+                 1, 0,
+                 NOW(), NOW())";
         }
 
         if (!sql_query($sql)) {
@@ -251,9 +294,15 @@ while ($r = sql_fetch_array($res)) $car_brands[] = $r;
 
 // 파츠 카테고리 (5001~5041)
 $parts_cats = [];
-$res2 = sql_query("SELECT ca_id, ca_name FROM `" . G5_TABLE_PREFIX . "shop_category`
+$res2 = sql_query("SELECT ca_id, ca_name FROM `" . G5_TABLE_PREFIX . "shop_category"
                    WHERE ca_id BETWEEN '5001' AND '5041' ORDER BY ca_id ASC");
 while ($r = sql_fetch_array($res2)) $parts_cats[] = $r;
+
+// 부품브랜드 카테고리 (B01~B99) — install_brand_categories.sql 실행 후 로드
+$brand_cats = [];
+$res3 = sql_query("SELECT ca_id, ca_name FROM `" . G5_TABLE_PREFIX . "shop_category"
+                   WHERE ca_id LIKE 'B%' AND ca_id != 'B0' ORDER BY ca_id ASC");
+while ($r = sql_fetch_array($res3)) $brand_cats[] = $r;
 
 ?>
 <!DOCTYPE html>
@@ -469,6 +518,44 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: #2563eb
                         &nbsp;기존 상품 덮어쓰기 (it_id 중복 시)
                     </label>
                     <div class="help-text">비체크 시 중복 상품은 건너뜀</div>
+                </div>
+            </div>
+            <div class="grid-3">
+                <!-- 2차분류: 파츠종류 (5001~5041) -->
+                <div class="form-group">
+                    <label>파츠종류 (2차분류, ca_id2) &mdash; 선택</label>
+                    <select id="reg-parts-ca2">
+                        <option value="">── 상품명 키워드 자동감지 사용 ──</option>
+                        <?php foreach ($parts_cats as $pc): ?>
+                        <option value="<?= htmlspecialchars($pc['ca_id']) ?>"><?= htmlspecialchars($pc['ca_name']) ?> (<?= $pc['ca_id'] ?>)</option>
+                        <?php endforeach; ?>
+                        <option value="5041">기타 (5041)</option>
+                    </select>
+                    <div class="help-text">선택 시 모든 상품에 강제 적용 / 빈칸이면 상품명 키워드로 자동감지</div>
+                </div>
+                <!-- 3차분류: 부품브랜드 (B01~B99) -->
+                <div class="form-group">
+                    <label>부품브랜드 (3차분류, ca_id3) &mdash; 선택</label>
+                    <select id="reg-parts-ca3">
+                        <option value="">── 부품브랜드 지정 안함 ──</option>
+                        <?php if (empty($brand_cats)): ?>
+                        <option value="" disabled style="color:#9ca3af;">⚠️ install_brand_categories.sql 실행 후 사용가능</option>
+                        <?php else: ?>
+                        <?php foreach ($brand_cats as $bc): ?>
+                        <option value="<?= htmlspecialchars($bc['ca_id']) ?>"><?= htmlspecialchars($bc['ca_name']) ?> (<?= $bc['ca_id'] ?>)</option>
+                        <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
+                    <div class="help-text">선택 시 모든 상품에 부품브랜드 분류 적용 (B01=BMW OEM, B10=모빌...)</div>
+                </div>
+                <!-- 범주 체계 안내 -->
+                <div class="form-group">
+                    <label style="color:#6b7280;">다중분류 범주 안내</label>
+                    <div class="alert alert-info" style="margin:0;padding:8px 12px;font-size:11px;line-height:1.8;">
+                        <strong>ca_id</strong>&nbsp; = 차종분류 (2010=BMW 3시리즈 F30...)<br>
+                        <strong>ca_id2</strong> = 파츠종류 (5001=오일필터, 5008=엔진오일...)<br>
+                        <strong>ca_id3</strong> = 부품브랜드 (B01=BMW OEM, B10=모빌...)
+                    </div>
                 </div>
             </div>
         </div>
@@ -818,6 +905,8 @@ async function doRegister() {
     if (!confirm(`${checked.length}개 상품을 등록합니다. 계속하시겠습니까?`)) return;
 
     const partsCa   = document.getElementById('reg-parts-ca').value;
+    const partsCa2  = document.getElementById('reg-parts-ca2') ? document.getElementById('reg-parts-ca2').value : '';
+    const partsCa3  = document.getElementById('reg-parts-ca3') ? document.getElementById('reg-parts-ca3').value : '';
     const brandId   = document.getElementById('reg-brand-id').value;
     const seriesId  = document.getElementById('reg-series-id').value;
     const modelId   = document.getElementById('reg-model-id').value;
@@ -842,6 +931,8 @@ async function doRegister() {
         const body = new FormData();
         chunk.forEach(r => body.append('rows[]', JSON.stringify(r)));
         body.append('parts_ca',   partsCa);
+        body.append('parts_ca2',  partsCa2);
+        body.append('parts_ca3',  partsCa3);
         body.append('brand_id',   brandId);
         body.append('series_id',  seriesId);
         body.append('model_id',   modelId);
