@@ -14,7 +14,9 @@
  *  - PhpSpreadsheet (없으면 CSV fallback)
  *  - install_parts_master.sql 실행 완료 필요
  */
-include_once('../../_common.php');
+if (!defined('_EYOOM_IS_ADMIN_')) {
+    include_once('../../_common.php');
+}
 
 if (!$is_admin) {
     alert('관리자만 접근 가능합니다.');

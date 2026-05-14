@@ -9,7 +9,9 @@
  *  3. 복사본의 가격·이미지·상세페이지 일괄 수정
  *  4. 자동으로 item_car 매핑도 복사(+변경)
  */
-include_once('../../_common.php');
+if (!defined('_EYOOM_IS_ADMIN_')) {
+    include_once('../../_common.php');
+}
 
 if (!$is_admin) {
     alert('관리자만 접근 가능합니다.');

@@ -9,7 +9,9 @@
  *  3. 파츠 종류별 일괄 가격 변경
  *  4. 상품-마스터 연결 현황 조회
  */
-include_once('../../_common.php');
+if (!defined('_EYOOM_IS_ADMIN_')) {
+    include_once('../../_common.php');
+}
 
 if (!$is_admin) {
     alert('관리자만 접근 가능합니다.');

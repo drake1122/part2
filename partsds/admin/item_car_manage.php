@@ -3,7 +3,9 @@
  * 파츠디에스 관리자 - 상품-차종 매핑 관리
  * 경로: /partsds/admin/item_car_manage.php
  */
-include_once('../../_common.php');
+if (!defined('_EYOOM_IS_ADMIN_')) {
+    include_once('../../_common.php');
+}
 
 if (!$is_admin) {
     alert('관리자만 접근 가능합니다.');

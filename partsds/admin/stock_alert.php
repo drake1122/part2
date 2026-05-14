@@ -17,7 +17,9 @@
  * 재고 자동 감지 cron 예시:
  *  0 9 * * * curl -s "https://yoursite.com/partsds/admin/stock_alert.php?cron_key=YOUR_KEY"
  */
-include_once('../../_common.php');
+if (!defined('_EYOOM_IS_ADMIN_')) {
+    include_once('../../_common.php');
+}
 
 // cron 모드: 웹훅 키 인증
 $cron_mode = false;
