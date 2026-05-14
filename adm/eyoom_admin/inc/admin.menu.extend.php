@@ -29,5 +29,6 @@ if ($member['mb_id'] == $config['cf_admin'] || in_array('partsds', (array)$mg_au
         array('600300', '엑셀 일괄등록',    G5_URL . '/partsds/admin/parts_excel.php',     'pds_excel'),
         array('600400', '재고 알림 관리',   G5_URL . '/partsds/admin/stock_alert.php',     'pds_stock'),
         array('600500', '차종 매핑 관리',   G5_URL . '/partsds/admin/item_car_manage.php', 'pds_carmap'),
+        array('600600', '메인홈 위젯 설정', G5_URL . '/partsds/admin/pds_home_config.php',  'pds_home'),
     );
 }
