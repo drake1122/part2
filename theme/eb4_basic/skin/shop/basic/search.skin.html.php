@@ -53,6 +53,11 @@ add_stylesheet('<link rel="stylesheet" href="'.EYOOM_THEME_URL.'/plugins/sly/tab
 
 <div id="fakeloader"></div>
 
+<?php /* ── 파츠디에스 - 파츠 카테고리 이미지 그리드 바 (검색 결과 상단) ── */
+$pds_cat_bar_file = G5_PATH . '/partsds/pds_parts_category_bar.php';
+if (file_exists($pds_cat_bar_file)) include($pds_cat_bar_file);
+?>
+
 <?php if ($is_admin) { ?>
 <div class="text-end m-b-10">
     <a href="<?php echo G5_ADMIN_URL; ?>/?dir=shop&pid=configform#anc_scf_etc" class="btn-e btn-e-crimson">검색 설정</a>

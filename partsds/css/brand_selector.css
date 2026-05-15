@@ -5,7 +5,7 @@
 
 /* 전체 섹션 */
 .partsds-brand-section {
-    padding: 48px 0 180px;
+    padding: 48px 0 60px;
     background: #fff;
     border-bottom: 1px solid #eee;
 }
@@ -13,7 +13,7 @@
 /* 제목 */
 .pds-brand-header {
     text-align: center;
-    margin-bottom: 28px;
+    margin-bottom: 32px;
 }
 .pds-brand-header h2 {
     font-size: 28px;
@@ -28,12 +28,12 @@
     margin: 0;
 }
 
-/* ── 캐러셀 ── */
+/* ── 캐러셀 (로고 이미지 슬라이더) ── */
 .pds-brand-carousel-wrap {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
     position: relative;
 }
 .pds-brand-carousel-viewport {
@@ -42,15 +42,17 @@
 }
 .pds-brand-carousel {
     display: flex;
-    gap: 10px;
+    gap: 16px;
     transition: transform 0.35s cubic-bezier(.25,.8,.25,1);
-    padding: 4px 0;
+    padding: 8px 0;
 }
+
+/* 브랜드 아이템: 로고 이미지 원형/사각 카드 */
 .pds-brand-item {
-    flex: 0 0 100px;
-    height: 80px;
+    flex: 0 0 120px;
+    height: 120px;
     border: 2px solid #e8e8e8;
-    border-radius: 10px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -58,23 +60,34 @@
     transition: border-color .2s, box-shadow .2s, transform .15s;
     background: #fff;
     user-select: none;
-    padding: 10px;
+    padding: 12px;
+    position: relative;
+    overflow: hidden;
 }
 .pds-brand-item:hover {
-    border-color: #c0392b;
-    box-shadow: 0 4px 12px rgba(192,57,43,.15);
-    transform: translateY(-2px);
+    border-color: #333;
+    box-shadow: 0 4px 16px rgba(0,0,0,.15);
+    transform: translateY(-3px);
 }
 .pds-brand-item.selected {
-    border-color: #c0392b;
-    background: #fff5f5;
-    box-shadow: 0 4px 14px rgba(192,57,43,.2);
+    border-color: #333;
+    box-shadow: 0 4px 16px rgba(0,0,0,.2);
 }
+
+/* 로고 이미지 */
 .pds-brand-item img {
-    max-width: 72px;
-    max-height: 52px;
+    max-width: 86px;
+    max-height: 86px;
     object-fit: contain;
+    display: block;
+    filter: grayscale(0%);
+    transition: filter .2s;
 }
+.pds-brand-item:not(.selected):not(:hover) img {
+    filter: grayscale(20%);
+}
+
+/* 텍스트 폴백 */
 .pds-brand-logo-text {
     text-align: center;
     font-size: 12px;
@@ -86,8 +99,8 @@
 
 /* 캐러셀 버튼 */
 .pds-carousel-btn {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border: 1px solid #ddd;
     border-radius: 50%;
     background: #fff;
@@ -99,10 +112,11 @@
     color: #555;
     flex-shrink: 0;
     transition: background .2s, border-color .2s;
+    box-shadow: 0 2px 6px rgba(0,0,0,.08);
 }
 .pds-carousel-btn:hover {
-    background: #c0392b;
-    border-color: #c0392b;
+    background: #333;
+    border-color: #333;
     color: #fff;
 }
 
@@ -113,6 +127,7 @@
     border-left: 4px solid #c0392b;
     border-radius: 8px;
     padding: 18px 20px 14px;
+    margin-bottom: 20px;
 }
 .pds-car-icon {
     display: inline-block;
@@ -221,6 +236,44 @@
     color: #c0392b;
 }
 
+/* ── 부품번호 직접 검색 박스 ── */
+.pds-part-number-search {
+    margin-top: 16px;
+}
+.pds-part-search-inner {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fff;
+    max-width: 480px;
+    margin: 0 auto;
+}
+.pds-part-input {
+    flex: 1;
+    height: 42px;
+    border: none;
+    outline: none;
+    padding: 0 16px;
+    font-size: 14px;
+    color: #333;
+    background: transparent;
+}
+.pds-part-input::placeholder { color: #bbb; }
+.pds-part-search-btn {
+    width: 46px;
+    height: 42px;
+    border: none;
+    background: transparent;
+    color: #888;
+    font-size: 17px;
+    cursor: pointer;
+    transition: color .18s;
+    flex-shrink: 0;
+}
+.pds-part-search-btn:hover { color: #c0392b; }
+
 /* ── 상품목록 필터 바 ── */
 .pds-filter-bar {
     background: #fff5f5;
@@ -261,15 +314,16 @@
 /* ── 반응형 ── */
 @media (max-width: 768px) {
     .partsds-brand-section {
-        padding: 28px 0 20px;
+        padding: 28px 0 30px;
     }
     .pds-brand-item {
-        flex: 0 0 80px;
-        height: 64px;
+        flex: 0 0 90px;
+        height: 90px;
+        padding: 10px;
     }
     .pds-brand-item img {
-        max-width: 56px;
-        max-height: 42px;
+        max-width: 64px;
+        max-height: 64px;
     }
     .pds-car-selectors {
         flex-direction: column;
@@ -279,5 +333,8 @@
     }
     .pds-search-btn {
         width: 100%;
+    }
+    .pds-part-search-inner {
+        max-width: 100%;
     }
 }

@@ -104,13 +104,29 @@ if ($is_member) {
     ];
 }
 
-// ── 브랜드 로고 슬러그 맵 ─────────────────────────────────────────────────
-$brand_logo_map = [
-    '벤츠'    => 'mercedes', 'BMW'     => 'bmw',   '아우디'   => 'audi',
-    '포르쉐'  => 'porsche',  '미니'    => 'mini',  '랜드로버' => 'landrover',
-    '폭스바겐'=> 'vw',       '볼보'    => 'volvo', '지프'     => 'jeep',
-    '테슬라'  => 'tesla',    '재규어'  => 'jaguar','렉서스'   => 'lexus',
-    '도요타'  => 'toyota',   '혼다'    => 'honda',
+// ── 브랜드 로고 이미지 URL 맵 (CDN 실제 로고 이미지) ─────────────────────
+$brand_logo_url_map = [
+    '벤츠'    => 'https://ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor/2024/09/06/benz_logo.png',
+    'BMW'     => 'https://ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor/2024/09/06/bmw_logo.png',
+    '아우디'  => 'https://ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor/2024/09/06/audi_logo.png',
+    '포르쉐'  => 'https://ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor/2024/09/06/porsche_logo.png',
+    '미니'    => 'https://ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor/2024/09/06/mini_logo.png',
+    '랜드로버'=> 'https://ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor/2024/09/06/landrover_logo.png',
+    '폭스바겐'=> 'https://ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor/2024/09/06/vw_logo.png',
+    '볼보'    => 'https://ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor/2024/09/06/volvo_logo.png',
+    '지프'    => 'https://ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor/2024/09/06/jeep_logo.png',
+    '테슬라'  => 'https://ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor/2024/09/06/tesla_logo.png',
+    '재규어'  => 'https://ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor/2024/09/06/jaguar_logo.png',
+    '렉서스'  => 'https://ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor/2024/09/06/lexus_logo.png',
+    '도요타'  => 'https://ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor/2024/09/06/toyota_logo.png',
+    '혼다'    => 'https://ecimg.cafe24img.com/pg742b88867550043/min48jjj/web/upload/category/editor/2024/09/06/honda_logo.png',
+];
+
+// ── 브랜드 로고 대체 SVG 맵 (CDN 이미지 없을 때 사용) ─────────────────────
+$brand_svg_map = [
+    '벤츠'    => '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="none" stroke="#999" stroke-width="2"/><line x1="50" y1="5" x2="50" y2="50" stroke="#999" stroke-width="2"/><line x1="50" y1="50" x2="10" y2="78" stroke="#999" stroke-width="2"/><line x1="50" y1="50" x2="90" y2="78" stroke="#999" stroke-width="2"/></svg>',
+    'BMW'     => '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="none" stroke="#999" stroke-width="2"/><circle cx="50" cy="50" r="30" fill="none" stroke="#999" stroke-width="1"/><path d="M50 20 L50 50 L20 50" fill="#0066B1"/><path d="M50 50 L50 80 L80 50" fill="#0066B1"/><path d="M50 20 L80 50" fill="white"/><path d="M20 50 L50 80" fill="white"/></svg>',
+    '아우디'  => '<svg viewBox="0 0 140 60" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="30" r="18" fill="none" stroke="#999" stroke-width="3"/><circle cx="50" cy="30" r="18" fill="none" stroke="#999" stroke-width="3"/><circle cx="80" cy="30" r="18" fill="none" stroke="#999" stroke-width="3"/><circle cx="110" cy="30" r="18" fill="none" stroke="#999" stroke-width="3"/></svg>',
 ];
 ?>
 
@@ -121,7 +137,7 @@ $brand_logo_map = [
             <p>구매하고자 하는 부품의 차량 브랜드를 선택해주세요</p>
         </div>
 
-        <!-- 브랜드 캐러셀 -->
+        <!-- 브랜드 캐러셀 (로고 이미지 슬라이더) -->
         <div class="pds-brand-carousel-wrap">
             <button class="pds-carousel-btn pds-prev" type="button" aria-label="이전">
                 <i class="fas fa-chevron-left"></i>
@@ -129,18 +145,32 @@ $brand_logo_map = [
             <div class="pds-brand-carousel-viewport">
                 <div class="pds-brand-carousel" id="pdsBrandCarousel">
                     <?php foreach ($brands as $brand): ?>
-                    <div class="pds-brand-item <?php if ($member_car['brand_id'] && $member_car['brand_id'] == $brand['brand_id']) echo 'selected'; ?>"
+                    <?php
+                        $is_selected = ($member_car['brand_id'] && $member_car['brand_id'] == $brand['brand_id']);
+                        $brand_name  = $brand['brand_name'];
+
+                        // 로고 URL 결정: DB brand_logo > 이름 맵 > 텍스트 폴백
+                        if (!empty($brand['brand_logo'])) {
+                            $logo_url = G5_URL . '/' . ltrim($brand['brand_logo'], '/');
+                            $logo_type = 'img';
+                        } elseif (isset($brand_logo_url_map[$brand_name])) {
+                            $logo_url  = $brand_logo_url_map[$brand_name];
+                            $logo_type = 'img';
+                        } else {
+                            $logo_type = 'text';
+                        }
+                    ?>
+                    <div class="pds-brand-item <?php echo $is_selected ? 'selected' : ''; ?>"
                          data-brand-id="<?php echo (int)$brand['brand_id']; ?>"
-                         data-brand-name="<?php echo htmlspecialchars($brand['brand_name']); ?>"
-                         title="<?php echo htmlspecialchars($brand['brand_name']); ?>">
-                        <?php if ($brand['brand_logo']): ?>
-                            <img src="<?php echo G5_URL . '/' . ltrim($brand['brand_logo'], '/'); ?>"
-                                 alt="<?php echo htmlspecialchars($brand['brand_name']); ?>">
-                        <?php else:
-                            $slug = $brand_logo_map[$brand['brand_name']] ?? ''; ?>
-                            <div class="pds-brand-logo-text" data-brand-slug="<?php echo $slug; ?>">
-                                <span><?php echo htmlspecialchars($brand['brand_name']); ?></span>
-                            </div>
+                         data-brand-name="<?php echo htmlspecialchars($brand_name); ?>"
+                         title="<?php echo htmlspecialchars($brand_name); ?>">
+                        <?php if ($logo_type === 'img'): ?>
+                            <img src="<?php echo htmlspecialchars($logo_url); ?>"
+                                 alt="<?php echo htmlspecialchars($brand_name); ?>"
+                                 onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                            <span class="pds-brand-logo-text" style="display:none;"><?php echo htmlspecialchars($brand_name); ?></span>
+                        <?php else: ?>
+                            <span class="pds-brand-logo-text"><?php echo htmlspecialchars($brand_name); ?></span>
                         <?php endif; ?>
                     </div>
                     <?php endforeach; ?>
@@ -209,6 +239,18 @@ $brand_logo_map = [
             </div>
             <?php endif; ?>
         </div>
+
+        <!-- 부품번호 직접 검색 -->
+        <div class="pds-part-number-search">
+            <form name="pds_part_search" action="<?php echo G5_SHOP_URL; ?>/search.php" method="get" onsubmit="return pdsPartSearchSubmit(this);">
+                <div class="pds-part-search-inner">
+                    <input type="text" name="stx" id="pdsPartInput" placeholder="예) 부품번호" class="pds-part-input">
+                    <button type="submit" class="pds-part-search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </section>
 
@@ -227,7 +269,7 @@ $brand_logo_map = [
 
     // ── 캐러셀 ────────────────────────────────────────────────────────────
     var carousel    = document.getElementById('pdsBrandCarousel');
-    var itemWidth   = 110;
+    var itemWidth   = 130; // 아이템 폭 + gap
     var carouselPos = 0;
 
     function updateCarouselTransform() {
@@ -241,7 +283,8 @@ $brand_logo_map = [
         updateCarouselTransform();
     });
     if (nextBtn) nextBtn.addEventListener('click', function() {
-        var maxScroll = -(Math.max(0, carousel.children.length - 7) * itemWidth);
+        var visibleCount = Math.floor(carousel.parentElement.offsetWidth / itemWidth);
+        var maxScroll = -(Math.max(0, carousel.children.length - visibleCount) * itemWidth);
         carouselPos = Math.max(maxScroll, carouselPos - itemWidth * 3);
         updateCarouselTransform();
     });
@@ -384,15 +427,19 @@ $brand_logo_map = [
             targetCaId = brandOpt ? (brandOpt.getAttribute('data-ca-id') || '') : '';
         }
 
+        // 차종 파라미터도 URL에 포함 (상품 목록에서 차종 표시용)
+        var carParams = '&pds_brand_id=' + brandId;
+        if (seriesId) carParams += '&pds_series_id=' + seriesId;
+        if (modelId)  carParams += '&pds_model_id='  + modelId;
+
         var url;
         if (targetCaId) {
-            url = '<?php echo G5_SHOP_URL; ?>/list.php?ca_id=' + encodeURIComponent(targetCaId);
+            url = '<?php echo G5_SHOP_URL; ?>/list.php?ca_id=' + encodeURIComponent(targetCaId) + carParams;
         } else {
-            // ca_id 매핑 없을 때 fallback (브랜드만 선택한 경우)
             var brandOpt2 = document.querySelector('#pdsSelectBrand option[value="' + brandId + '"]');
             var brandCaId = brandOpt2 ? (brandOpt2.getAttribute('data-ca-id') || '') : '';
             if (brandCaId) {
-                url = '<?php echo G5_SHOP_URL; ?>/list.php?ca_id=' + encodeURIComponent(brandCaId);
+                url = '<?php echo G5_SHOP_URL; ?>/list.php?ca_id=' + encodeURIComponent(brandCaId) + carParams;
             } else {
                 alert('해당 차종에 연결된 분류가 없습니다.');
                 return;
@@ -414,6 +461,13 @@ $brand_logo_map = [
         memberCar = {brand_id:0, series_id:0, model_id:0};
         var infoEl = document.querySelector('.pds-my-car-info');
         if (infoEl) infoEl.style.display = 'none';
+    };
+
+    // ── 부품번호 검색 폼 제출 처리 ───────────────────────────────────────
+    window.pdsPartSearchSubmit = function(frm) {
+        var val = frm.stx ? frm.stx.value.trim() : '';
+        if (!val) { alert('검색어를 입력해주세요.'); return false; }
+        return true;
     };
 
 })();
