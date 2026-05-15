@@ -98,7 +98,7 @@ $pds_models_arr = array();
 
 if (function_exists('sql_fetch')) {
     $pds_tbl_chk = @sql_query("SHOW TABLES LIKE '" . G5_TABLE_PREFIX . "car_brand'");
-    if ($pds_tbl_chk && @mysql_num_rows($pds_tbl_chk) > 0) {
+    if ($pds_tbl_chk && @sql_num_rows($pds_tbl_chk) > 0) {
         $_pds_has_cardb = true;
 
         // 브랜드명
