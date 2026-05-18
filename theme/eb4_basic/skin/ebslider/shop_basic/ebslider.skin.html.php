@@ -42,7 +42,8 @@ if (!defined('_EYOOM_')) exit;
 
 <?php if (isset($es_master) && $es_master['es_state'] == '1') { // 보이기 상태에서만 출력 ?>
 <style>
-.ebs-shop-basic-wrap-<?php echo $es_code; ?> {position:relative;margin-bottom:40px}
+.ebs-shop-basic-wrap-<?php echo $es_code; ?> {position:relative;margin:40px}
+.ebs-shop-basic-wrap-1776909913 {position: relative;margin: 100px auto;}
 .ebs-shop-basic-in {position:relative;overflow:hidden}
 .ebs-shop-basic-in .swiper {width:100%;height:100%;margin-left:auto;margin-right:auto}
 .ebs-shop-basic-in .swiper-slide {text-align:center;font-size:.9375rem;display:-webkit-box;display:-ms-flexbox;display:-webkit-flex;display:flex;-webkit-box-pack:center;-ms-flex-pack:center;-webkit-justify-content:center;justify-content:center;-webkit-box-align:center;-ms-flex-align:center;-webkit-align-items:center;align-items:center}

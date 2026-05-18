@@ -14,7 +14,7 @@ if (!defined('_EYOOM_')) exit;
 <?php /* ---------- 쇼핑몰 메인 EB 슬라이더 끝 ---------- */ ?>
 
 <?php /* ---------- 쇼핑몰 브랜드 시작 ---------- */ ?>
-<?php if ($eyoom['use_brand'] != 'n') { ?>
+<!-- <?php if ($eyoom['use_brand'] != 'n') { ?>
 <div class="container">
     <div class="main-heading">
         <h2><strong>브랜드</strong></h2>
@@ -33,7 +33,7 @@ if (!defined('_EYOOM_')) exit;
         <?php echo eb_brand('basic'); ?>
     </div>
 </div>
-<?php } ?>
+<?php } ?> -->
 <?php /* ---------- 쇼핑몰 브랜드 끝 ---------- */ ?>
 
 <div class="container">
@@ -178,6 +178,18 @@ if (!defined('_EYOOM_')) exit;
     <?php } ?>
     <?php /* ---------- 인기상품 끝 ---------- */ ?>
 
+    
+    <?php /* ---------- 파츠디에스 차종 선택 섹션 시작 ---------- */ ?>
+    <?php
+    $pds_brand_selector = G5_PATH . '/partsds/brand_selector.php';
+    if (file_exists($pds_brand_selector)) {
+        include_once($pds_brand_selector);
+    }
+    ?>
+    <?php /* ---------- 파츠디에스 차종 선택 섹션 끝 ---------- */ ?>
+
+
+    
     <?php /* ---------- 할인상품 시작 ---------- */ ?>
     <?php if ($is_admin == 'super' && !G5_IS_MOBILE) { ?>
     <div class="adm-edit-btn btn-edit-mode" style="margin-top:-25px;">
@@ -211,16 +223,6 @@ if (!defined('_EYOOM_')) exit;
     </section>
     <?php } ?>
     <?php /* ---------- 할인상품 끝 ---------- */ ?>
-    
-    <?php /* ---------- 파츠디에스 차종 선택 섹션 시작 ---------- */ ?>
-    <?php
-    $pds_brand_selector = G5_PATH . '/partsds/brand_selector.php';
-    if (file_exists($pds_brand_selector)) {
-        include_once($pds_brand_selector);
-    }
-    ?>
-    <?php /* ---------- 파츠디에스 차종 선택 섹션 끝 ---------- */ ?>
-
 
     
 </div>

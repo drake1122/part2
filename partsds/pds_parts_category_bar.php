@@ -543,7 +543,7 @@ if (!function_exists('pds_cat_link')) {
     font-size: 0.72rem;
     text-align: center;
     transition: border-color .18s, background .18s, color .18s;
-    background: #fafafa;
+    /* background: #fafafa; */
     line-height: 1.35;
     word-break: keep-all;
 }
@@ -555,8 +555,8 @@ if (!function_exists('pds_cat_link')) {
     text-decoration: none;
 }
 .pds-cat-item img {
-    width: 56px;
-    height: 56px;
+    width: 100px;
+    height: 100px;
     object-fit: contain;
     margin-bottom: 5px;
     display: block;
